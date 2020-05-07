@@ -49,7 +49,7 @@ situation_dat = data.frame(situation = situation_dat)
 situation_dat = data.frame(freq(situation_dat$situation))
 ## Get rid of total change to 6 later
 situation_dat = situation_dat[-4,]
-situation_dat$var_names = c("Client Facing", "Client Facing Medical Provider", "Non Client Facing")
+situation_dat$var_names = c("Working from home", "Centerstone office", "Working from home and Centerstone office", "Not working from home")
 situation_dat$Frequency = as.factor(situation_dat$Frequency)
 situation_dat$Percent = situation_dat$Percent / 100
 
