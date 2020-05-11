@@ -16,6 +16,10 @@ head(tech_cri_dat_complete)
 Check missingness
 ```{r}
 library(naniar)
+library(descr)
+library(gt)
+library(ggplot2)
+library(ggrepel)
 miss_var_summary(tech_cri_dat_complete)
 dim(tech_cri_dat_complete)
 dim(tech_cri_dat)
@@ -63,9 +67,9 @@ situation_dat = data.frame(situation = situation_dat)
 situation_dat = data.frame(freq(situation_dat$situation))
 ## Get rid of total change to 5 later
 situation_dat = situation_dat[-5,]
-situation_dat$var_names = c("Working from home", "Centerstone office", "Working from home and Centerstone office", "Not working")
+situation_dat$var_names = c("Working from home", "Centerstone office", "Working from home and \n Centerstone office", "Not working")
 
-situation_dat$var_names = factor(situation_dat$var_names, levels = c("Working from home", "Centerstone office", "Working from home and Centerstone office", "Not working"))
+situation_dat$var_names = factor(situation_dat$var_names, levels = c("Working from home", "Centerstone office", "Working from home and \n Centerstone office", "Not working"))
 situation_dat$Frequency = as.factor(situation_dat$Frequency)
 situation_dat$Percent = situation_dat$Percent / 100
 ### Need this for later
@@ -84,9 +88,6 @@ plot_situation
 
 
 ```
-
-
-
 Home productivity
 
 1, I have no barriers and am working productively 
@@ -110,7 +111,20 @@ rownames(home_productive) = NULL
 colnames(home_productive)[2] = "count"
 home_productive$percent = round(home_productive$percent,2)
 home_productive$percent = paste0(home_productive$percent*100, "%")
+home_productive = home_productive[order(home_productive$count,decreasing = TRUE),]
+home_productive
 write.csv(home_productive, "home_productive.csv", row.names = FALSE)
+
+title_home_productive = paste0("What barriers do you have to working from home at full productivity?", " ", "n=", n_clinician_survey)
+table_home_productive = 
+  gt(home_productive) %>%
+  tab_header(title = title_home_productive)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_home_productive
+library(webshot)
+gtsave(table_home_productive, "table_home_productive.png")
+
 ```
 Qualitative other barriers at home code later
 ```{r}
@@ -119,8 +133,10 @@ length(barriers_home_complete)
 write.csv(barriers_home_complete, "barriers_home_complete.csv", row.names = FALSE)
 ```
 office_why
+I am working in the office because: 
 Take n_why and divide each by that number to get the percent who answered yes to this quesiton. 
 n_why[2,1]
+I am working in the office because: 
 1, My job is essential and cannot be performed remotely | 2, I have poor internet/connection at home | 3, I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone) | 4, My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing) | 5, I am choosing (with leadership permission) to continue to work in the office
 ```{r}
 head(tech_cri_dat_complete[,12:16])
@@ -138,8 +154,21 @@ rownames(office_why) = NULL
 colnames(office_why)[2] = "count"
 office_why$percent = round(office_why$percent,2)
 office_why$percent = paste0(office_why$percent*100, "%")
+office_why = office_why[order(office_why$count,decreasing = TRUE),]
 write.csv(office_why, "office_why.csv", row.names = FALSE)
 office_why
+
+title_office_why = paste0("I am working in the office because:", " ", "n=", n_clinician_survey)
+table_office_why = 
+  gt(office_why) %>%
+  tab_header(title = title_office_why)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_office_why
+library(webshot)
+gtsave(table_office_why, "table_office_why.png")
+
+
 ```
 barriers_office
 n_why[2,1]
@@ -161,8 +190,19 @@ rownames(barriers_office) = NULL
 colnames(barriers_office)[2] = "count"
 barriers_office$percent = round(barriers_office$percent,2)
 barriers_office$percent = paste0(barriers_office$percent*100, "%")
+barriers_office = barriers_office[order(barriers_office$count,decreasing = TRUE),]
 write.csv(barriers_office, "barriers_office.csv", row.names = FALSE)
 barriers_office
+
+title_barriers_office = paste0("What barriers if any do you have working in the office?", " ", "n=", n_clinician_survey)
+table_barriers_office = 
+  gt(barriers_office) %>%
+  tab_header(title = title_barriers_office)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_barriers_office
+library(webshot)
+gtsave(table_barriers_office, "table_barriers_office.png")
 ```
 other_barriers_office
 Please describe the barriers.
@@ -188,14 +228,25 @@ office_home_why = apply(office_home_why, 2, sum)
 office_home_why = data.frame(office_home_why)
 office_home_why$percent = office_home_why$office_home_why / n_why[3,1]
 office_home_why
-response_options =  c("Parts of my job cannot be performed remotely", "I am rotating with other staff covering office based tasks", "I have poor internet/connection at home and need to be on the network for my work.", "I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone).", "My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing)", "I am choosing (with leadership permission) to continue to work in the office part of the time.)")
+response_options =  c("Parts of my job cannot be performed remotely", "I am rotating with other staff covering office based tasks", "I have poor internet/connection at home and need to be on the network for my work.", "I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone).", "My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing)", "I am choosing (with leadership permission) to continue to work in the office part of the time.")
 office_home_why = data.frame(response_options, office_home_why)
 rownames(office_home_why) = NULL
 colnames(office_home_why)[2] = "count"
 office_home_why$percent = round(office_home_why$percent,2)
 office_home_why$percent = paste0(office_home_why$percent*100, "%")
+office_home_why = office_home_why[order(office_home_why$count,decreasing = TRUE),]
 write.csv(office_home_why, "office_home_why.csv", row.names = FALSE)
 office_home_why
+
+title_office_home_why = paste0("I am working in the office some days because:", " ", "n=", n_clinician_survey)
+table_office_home_why = 
+  gt(office_home_why) %>%
+  tab_header(title = title_office_home_why)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_office_home_why
+library(webshot)
+gtsave(table_office_home_why, "table_office_home_why.png")
 
 ```
 barriers_office_home
@@ -218,8 +269,20 @@ rownames(barriers_office_home) = NULL
 colnames(barriers_office_home)[2] = "count"
 barriers_office_home$percent = round(barriers_office_home$percent,2)
 barriers_office_home$percent = paste0(barriers_office_home$percent*100, "%")
+barriers_office_home = barriers_office_home[order(barriers_office_home$count,decreasing = TRUE),]
 write.csv(barriers_office_home, "barriers_office_home.csv", row.names = FALSE)
 barriers_office_home
+
+title_barriers_office_home = paste0("What barriers if any do you have working in the office?", " ", "n=", n_clinician_survey)
+table_barriers_office_home = 
+  gt(barriers_office_home) %>%
+  tab_header(title = title_barriers_office_home)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_barriers_office_home
+library(webshot)
+gtsave(table_barriers_office_home, "table_barriers_office_home.png")
+
 ```
 other_barriers_office_home
 Please describe the other barriers.
@@ -253,10 +316,19 @@ rownames(service_provided) = NULL
 colnames(service_provided)[2] = "count"
 service_provided$percent = round(service_provided$percent,2)
 service_provided$percent = paste0(service_provided$percent*100, "%")
+service_provided = service_provided[order(service_provided$count,decreasing = TRUE),]
 write.csv(service_provided, "service_provided.csv", row.names = FALSE)
 service_provided
-
-
+library(gt)
+title_service_provided = paste0("Which of Centerstone's televideo or teleaudio services have you provided to client(s)?", " ", "n=", n_clinician_survey)
+table_service_provided = 
+  gt(service_provided) %>%
+  tab_header(title = title_service_provided)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_service_provided
+library(webshot)
+gtsave(table_service_provided, "table_service_provided.png")
 ```
 barriers_snap_md_use
 We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply. 
@@ -279,7 +351,18 @@ barriers_snap_md_use$percent = round(barriers_snap_md_use$percent,2)
 barriers_snap_md_use$percent = paste0(barriers_snap_md_use$percent*100, "%")
 write.csv(barriers_snap_md_use, "barriers_snap_md_use.csv", row.names = FALSE)
 barriers_snap_md_use
+barriers_snap_md_use = barriers_snap_md_use[order(barriers_snap_md_use$count,decreasing = TRUE),]
 
+library(gt)
+title_barriers_snap_md_use = paste0("We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply.", " ", "n=", n_clinician_survey)
+table_barriers_snap_md_use = 
+  gt(barriers_snap_md_use) %>%
+  tab_header(title = title_barriers_snap_md_use)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_barriers_snap_md_use
+library(webshot)
+gtsave(table_barriers_snap_md_use, "table_barriers_snap_md_use.png")
 
 ```
 other_snap_barriers_use
@@ -307,6 +390,18 @@ facilitate_snapmd$percent = paste0(facilitate_snapmd$percent*100, "%")
 write.csv(facilitate_snapmd, "facilitate_snapmd.csv", row.names = FALSE)
 facilitate_snapmd
 
+facilitate_snapmd = facilitate_snapmd[order(facilitate_snapmd$count,decreasing = TRUE),]
+
+library(gt)
+title_facilitate_snapmd = paste0("We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", n_clinician_survey)
+table_facilitate_snapmd = 
+  gt(facilitate_snapmd) %>%
+  tab_header(title = title_facilitate_snapmd)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_facilitate_snapmd
+library(webshot)
+gtsave(table_facilitate_snapmd, "table_facilitate_snapmd.png")
 
 
 ```
@@ -333,6 +428,19 @@ barriers_zoom_use$percent = round(barriers_zoom_use$percent,2)
 barriers_zoom_use$percent = paste0(barriers_zoom_use$percent*100, "%")
 write.csv(barriers_zoom_use, "barriers_zoom_use.csv", row.names = FALSE)
 barriers_zoom_use
+
+barriers_zoom_use = barriers_zoom_use[order(barriers_zoom_use$count,decreasing = TRUE),]
+
+library(gt)
+title_barriers_zoom_use = paste0("We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.", " ", "n=", n_clinician_survey)
+table_barriers_zoom_use = 
+  gt(barriers_zoom_use) %>%
+  tab_header(title = title_barriers_zoom_use)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_barriers_zoom_use
+library(webshot)
+gtsave(table_barriers_zoom_use, "table_barriers_zoom_use.png")
 ```
 other_zoom_barriers_use
 Please list the other barrier(s).
@@ -358,6 +466,18 @@ facilitate_zoom$percent = paste0(facilitate_zoom$percent*100, "%")
 write.csv(facilitate_zoom, "facilitate_zoom.csv", row.names = FALSE)
 facilitate_zoom
 
+facilitate_zoom = facilitate_zoom[order(facilitate_zoom$count,decreasing = TRUE),]
+
+library(gt)
+title_facilitate_zoom = paste0("We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", n_clinician_survey)
+table_facilitate_zoom = 
+  gt(facilitate_zoom) %>%
+  tab_header(title = title_facilitate_zoom)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_facilitate_zoom
+library(webshot)
+gtsave(table_facilitate_zoom, "table_facilitate_zoom.png")
 
 ```
 other_facilitate_zoom
@@ -385,6 +505,18 @@ barriers_snap_md$percent = paste0(barriers_snap_md$percent*100, "%")
 write.csv(barriers_snap_md, "barriers_snap_md.csv", row.names = FALSE)
 barriers_snap_md
 
+barriers_snap_md = barriers_snap_md[order(barriers_snap_md$count,decreasing = TRUE),]
+
+library(gt)
+title_barriers_snap_md = paste0("Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)", " ", "n=", n_clinician_survey)
+table_barriers_snap_md = 
+  gt(barriers_snap_md) %>%
+  tab_header(title = title_barriers_snap_md)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_barriers_snap_md
+library(webshot)
+gtsave(table_barriers_snap_md, "table_barriers_snap_md.png")
 
 ```
 
@@ -414,6 +546,19 @@ barriers_zoom$percent = paste0(barriers_zoom$percent*100, "%")
 write.csv(barriers_zoom, "barriers_zoom.csv", row.names = FALSE)
 barriers_zoom
 
+barriers_zoom = barriers_zoom[order(barriers_zoom$count,decreasing = TRUE),]
+
+library(gt)
+title_barriers_zoom = paste0("Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)", " ", "n=", n_clinician_survey)
+table_barriers_zoom = 
+  gt(barriers_zoom) %>%
+  tab_header(title = title_barriers_zoom)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_barriers_zoom
+library(webshot)
+gtsave(table_barriers_zoom, "table_barriers_zoom.png")
+
 ```
 communicate
 Televideo has helped me communicate with my client(s).
@@ -442,7 +587,7 @@ telehealth_sat_dat = data.frame(var_names, telehealth_sat_dat)
 rownames(telehealth_sat_dat) = NULL
 telehealth_sat_dat
 ## Get rid of total
-title_telehealth_sat = paste0("Telehealth satisfaction", " ", "n=", n_telehealth_sat_dat)
+title_telehealth_sat = paste0("Televideo satisfaction", " ", "n=", n_telehealth_sat_dat)
 plot_telehealth_sat = ggplot(telehealth_sat_dat, aes(x = var_names,y = telehealth_sat_dat, fill = telehealth_sat_dat))+
   geom_bar(stat = "identity")+
   labs(title=title_telehealth_sat, x ="Outcome", y = "Average rating")+
@@ -462,6 +607,7 @@ head(clincian_survey_dat[,114:120])
 comfort_televideo_dat = na.omit(clincian_survey_dat$comfort_televideo)
 comfort_televideo_dat = data.frame(comfort_televideo = comfort_televideo_dat)
 n_comfort_televideo_dat = dim(comfort_televideo_dat)[1]
+
 comfort_televideo_dat = data.frame(freq(comfort_televideo_dat$comfort_televideo))
 ## Get rid of total
 comfort_televideo_dat = comfort_televideo_dat[-8,]
@@ -542,6 +688,20 @@ prefer_service$percent = paste0(prefer_service$percent*100, "%")
 write.csv(prefer_service, "prefer_service.csv", row.names = FALSE)
 prefer_service
 
+prefer_service = prefer_service[order(prefer_service$count,decreasing = TRUE),]
+
+library(gt)
+title_prefer_service = paste0("In the future, how would you prefer to provide services? (please check all that apply)", " ", "n=", n_clinician_survey)
+table_prefer_service = 
+  gt(prefer_service) %>%
+  tab_header(title = title_prefer_service)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_prefer_service
+library(webshot)
+gtsave(table_prefer_service, "table_prefer_service.png")
+
+
 ```
 ideal_features
 Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)
@@ -565,6 +725,19 @@ ideal_features$percent = round(ideal_features$percent,2)
 ideal_features$percent = paste0(ideal_features$percent*100, "%")
 write.csv(ideal_features, "ideal_features.csv", row.names = FALSE)
 ideal_features
+
+ideal_features = ideal_features[order(ideal_features$count,decreasing = TRUE),]
+
+library(gt)
+title_ideal_features = paste0("Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)", " ", "n=", n_clinician_survey)
+table_ideal_features = 
+  gt(ideal_features) %>%
+  tab_header(title = title_ideal_features)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  Only respondents who selected at least televideo.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_ideal_features
+library(webshot)
+gtsave(table_ideal_features, "table_ideal_features.png")
 
 ```
 other_ideal_features
@@ -591,6 +764,19 @@ ideal_features_no$percent = round(ideal_features_no$percent,2)
 ideal_features_no$percent = paste0(ideal_features_no$percent*100, "%")
 write.csv(ideal_features_no, "ideal_features_no.csv", row.names = FALSE)
 ideal_features_no
+
+ideal_features_no = ideal_features_no[order(ideal_features_no$count,decreasing = TRUE),]
+
+library(gt)
+title_ideal_features_no = paste0("Would any of these features increase your preference to use televideo in the future? (please check all that apply)", " ", "n=", n_clinician_survey)
+table_ideal_features_no = 
+  gt(ideal_features_no) %>%
+  tab_header(title = title_ideal_features_no)%>%
+  tab_footnote(footnote = "Respondants can select all that apply so count / percent can add up to more than total n / 100%. Only respondents who did not select televideo." ,  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+table_ideal_features_no
+library(webshot)
+gtsave(table_ideal_features_no, "table_ideal_features_no.png")
 
 
 ```
@@ -692,7 +878,7 @@ n_age_dat = dim(age_dat)[1]
 age_dat = data.frame(freq(age_dat$age))
 ## Get rid of total change to 8 later
 age_dat = age_dat[-8,]
-age_dat$var_names = c("18 to 25 years old", "26 to 34 years old", "35 to 44 years old", "45 to 54 years old", "55 to 64 years old", "65 to 74 years old", "75+")
+age_dat$var_names = c("18 to 25 \n years old", "26 to 34 \n years old", "35 to 44 \n years old", "45 to 54 \n years old", "55 to 64 \n years old", "65 to 74 \n years old", "75+")
 age_dat$Percent = age_dat$Percent / 100
 age_dat$Percent = round(age_dat$Percent, 2)*100
 age_dat$Percent = paste0(age_dat$Percent, "%")
@@ -734,3 +920,63 @@ plot_race
 
 
 ```
+Gender
+What is your gender identity?
+1, Male | 2, Female | 3, Another gender identity | 4, Prefer not to respond
+```{r}
+gender_dat = na.omit(tech_cri_dat_complete$gender)
+gender_dat = data.frame(gender = gender_dat)
+n_gender_dat = dim(gender_dat)[1]
+gender_dat = data.frame(freq(gender_dat$gender))
+## Get rid of total change to 5 later
+gender_dat = gender_dat[-5,]
+gender_dat$var_names = c("Male", "Female", "Another gender identity", "Prefer not to respond")
+gender_dat$Percent = gender_dat$Percent / 100
+gender_dat$Percent = round(gender_dat$Percent, 2)*100
+gender_dat$Percent = paste0(gender_dat$Percent, "%")
+typeof(gender_dat$Frequency)
+title_gender = paste0("What is your gender?", " ", "n=", n_gender_dat)
+plot_gender = ggplot(gender_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_gender, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,n_gender_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = gender_dat$Percent, vjust = -.5)
+plot_gender
+```
+job_title_extend
+Which option best describes your job title?
+1, Psychiatrists | 2, Nurse Practitioners | 3, Clinician - Masters, non-licensed | 4, Clinician - Masters, licensed | 5, Clinician - Bachelors | 6, Peer Support Specialist | 7, Another job title
+```{r}
+job_title_extend_dat = na.omit(tech_cri_dat_complete$job_title_extend)
+job_title_extend_dat = data.frame(job_title_extend = job_title_extend_dat)
+n_job_title_extend_dat = dim(job_title_extend_dat)[1]
+job_title_extend_dat = data.frame(freq(job_title_extend_dat$job_title_extend))
+## Get rid of total change to 8 later
+job_title_extend_dat = job_title_extend_dat[-8,]
+job_title_extend_dat$var_names = c("Psychiatrists", "Nurse Practitioners", "Clinician - Masters, \n non-licensed", "Clinician - Masters, \n licensed", "Clinician - Bachelors", "Peer Support Specialist", "Another job title")
+job_title_extend_dat$Percent = job_title_extend_dat$Percent / 100
+job_title_extend_dat$Percent = round(job_title_extend_dat$Percent, 2)*100
+job_title_extend_dat$Percent = paste0(job_title_extend_dat$Percent, "%")
+typeof(job_title_extend_dat$Frequency)
+title_job_title_extend = paste0("Which option best describes your job title?", " ", "n=", n_job_title_extend_dat)
+plot_job_title_extend = ggplot(job_title_extend_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_job_title_extend, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,n_job_title_extend_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = job_title_extend_dat$Percent, vjust = -.5)
+plot_job_title_extend
+
+```
+other_job_title
+```{r}
+head(tech_cri_dat_complete[,159],15)
+
+```
+
+
+
+
+
+
