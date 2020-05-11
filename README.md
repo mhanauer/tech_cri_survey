@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-11_0519.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-11_0519.csv", header = TRUE, na.strings = c("", "N/A"))
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
 head(tech_cri_dat_complete)
 ```
@@ -19,6 +19,10 @@ library(naniar)
 miss_var_summary(tech_cri_dat_complete)
 dim(tech_cri_dat_complete)
 dim(tech_cri_dat)
+
+### Clinician survey data 
+clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
+
 ```
 
 
@@ -361,17 +365,17 @@ Lower than 10% not going to code it
 
 barriers_snap_md
 Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)
+n = service_provided[c(1:3,6),2]
+Not SnapMD selected
 ```{r}
-head(tech_cri_dat_complete[,63:74])
+head(tech_cri_dat_complete[,84:95])
 head(tech_cri_dat_complete)
-barriers_snap_md = tech_cri_dat_complete[,63:74]
+barriers_snap_md = tech_cri_dat_complete[,84:95]
 #barriers_snap_md = apply(barriers_snap_md, 2, as.factor)
 barriers_snap_md = apply(barriers_snap_md, 2, sum)
 barriers_snap_md = data.frame(barriers_snap_md)
-barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / sum(service_provided[c(1,4,5,2)])
+barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / sum(service_provided[c(1:3,6),2])
 barriers_snap_md
-
-
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_snap_md = data.frame(response_options, barriers_snap_md)
 rownames(barriers_snap_md) = NULL
@@ -385,6 +389,255 @@ barriers_snap_md
 ```
 
 
+other_snap_barriers
+Other barriers not listed above
+code later
 
 
+barriers_zoom
+Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)
+```{r}
+head(tech_cri_dat_complete[,97:108])
+head(tech_cri_dat_complete)
+barriers_zoom = tech_cri_dat_complete[,97:108]
+#barriers_zoom = apply(barriers_zoom, 2, as.factor)
+barriers_zoom = apply(barriers_zoom, 2, sum)
+barriers_zoom = data.frame(barriers_zoom)
+barriers_zoom$percent = barriers_zoom$barriers_zoom / sum(service_provided[c(1, 4:6),2])
+barriers_zoom
+response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
+barriers_zoom = data.frame(response_options, barriers_zoom)
+rownames(barriers_zoom) = NULL
+colnames(barriers_zoom)[2] = "count"
+barriers_zoom$percent = round(barriers_zoom$percent,2)
+barriers_zoom$percent = paste0(barriers_zoom$percent*100, "%")
+write.csv(barriers_zoom, "barriers_zoom.csv", row.names = FALSE)
+barriers_zoom
+
+```
+communicate
+Televideo has helped me communicate with my client(s).
+1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
+
+Let's do an average score and then plot by all four of them
+```{r}
+### Client survey data
+#clincian_survey_dat
+
+library(ggplot2)
+head(tech_cri_dat_complete)
+head(tech_cri_dat_complete[,110:113])
+telehealth_sat_dat = clincian_survey_dat
+n_telehealth_sat_dat = dim(telehealth_sat_dat)[1]
+## Subset 6, because you are a dumbass!!!!  6 = N/A
+telehealth_sat_dat = telehealth_sat_dat[,110:113]
+telehealth_sat_dat[telehealth_sat_dat == 6] = NA
+apply(telehealth_sat_dat, 2, range, na.rm = TRUE)
+telehealth_sat_dat = data.frame(telehealth_sat = telehealth_sat_dat)
+telehealth_sat_dat = apply(telehealth_sat_dat, 2, mean, na.rm = TRUE)
+telehealth_sat_dat = round(telehealth_sat_dat,2)
+telehealth_sat_dat = data.frame(telehealth_sat_dat)
+var_names = c("communicate", "substance", "manage", "recovery")
+telehealth_sat_dat = data.frame(var_names, telehealth_sat_dat)
+rownames(telehealth_sat_dat) = NULL
+telehealth_sat_dat
+## Get rid of total
+title_telehealth_sat = paste0("Telehealth satisfaction", " ", "n=", n_telehealth_sat_dat)
+plot_telehealth_sat = ggplot(telehealth_sat_dat, aes(x = var_names,y = telehealth_sat_dat, fill = telehealth_sat_dat))+
+  geom_bar(stat = "identity")+
+  labs(title=title_telehealth_sat, x ="Outcome", y = "Average rating")+
+  scale_y_continuous(limits = c(0,5))+
+  labs(fill = "")
+plot_telehealth_sat
+
+```
+comfort_televideo
+What is your level of comfort with televideo?
+1, Very uncomfortable | 2, Uncomfortable | 3, Somewhat uncomfortable | 4, Neither uncomfortable nor comfortable | 5, Somewhat comfortable | 6, Comfortable | 7, Very comfortable
+```{r}
+
+### Client survey data
+#clincian_survey_dat
+head(clincian_survey_dat[,114:120])
+comfort_televideo_dat = na.omit(clincian_survey_dat$comfort_televideo)
+comfort_televideo_dat = data.frame(comfort_televideo = comfort_televideo_dat)
+n_comfort_televideo_dat = dim(comfort_televideo_dat)[1]
+comfort_televideo_dat = data.frame(freq(comfort_televideo_dat$comfort_televideo))
+## Get rid of total
+comfort_televideo_dat = comfort_televideo_dat[-8,]
+var_names =  rownames(comfort_televideo_dat)
+comfort_televideo_dat$var_names = var_names
+typeof(comfort_televideo_dat$Frequency)
+comfort_televideo_dat$Percent = round(comfort_televideo_dat$Percent,2)
+comfort_televideo_dat$Percent = paste0(comfort_televideo_dat$Percent, "%")
+title_comfort_televideo_dat = paste0("What is your level of comfort with televideo?", " ", "n=", n_comfort_televideo_dat)
+#comfort_televideo_dat$Frequency = paste0("n=",comfort_televideo_dat$Frequency)
+plot_comfort_televideo = ggplot(comfort_televideo_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_comfort_televideo_dat, x ="Response option", y = "N")+
+  scale_y_continuous(limits = c(0,n_comfort_televideo_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = comfort_televideo_dat$Percent, vjust = -.5)
+plot_comfort_televideo
+```
+increase_comfort
+Is there something Centerstone can do to increase your comfort level?  If so, please describe what Centerstone can do.
+```{r}
+
+```
+interest_working_home
+What is your level of interest in providing televideo services in the future?
+1, Very disinterested | 2, Disinterested | 3, Somewhat disinterested | 4, Neither disinterested nor interested | 5, Somewhat interested | 6, Interested | 7, Very interested
+
+Also include those who service_provided != 6
+```{r}
+clincian_survey_dat_int = subset(clincian_survey_dat, service_provided___6 != 1)
+interest_working_home_dat = na.omit(clincian_survey_dat_int$interest_working_home)
+interest_working_home_dat = data.frame(interest_working_home = interest_working_home_dat)
+n_interest_working_home_dat = dim(interest_working_home_dat)[1]
+interest_working_home_dat = data.frame(freq(interest_working_home_dat$interest_working_home))
+## Get rid of total
+interest_working_home_dat = interest_working_home_dat[-8,]
+var_names =  rownames(interest_working_home_dat)
+interest_working_home_dat$var_names = var_names
+typeof(interest_working_home_dat$Frequency)
+interest_working_home_dat$Percent = round(interest_working_home_dat$Percent,2)
+interest_working_home_dat$Percent = paste0(interest_working_home_dat$Percent, "%")
+title_interest_working_home_dat = paste0("What is your level of interest in providing televideo services in the future?", " ", "n=", n_interest_working_home_dat)
+#interest_working_home_dat$Frequency = paste0("n=",interest_working_home_dat$Frequency)
+plot_interest_working_home = ggplot(interest_working_home_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_interest_working_home_dat, x ="Response option", y = "N")+
+  scale_y_continuous(limits = c(0,n_interest_working_home_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = interest_working_home_dat$Percent, vjust = -.5)
+plot_interest_working_home
+
+```
+barriers_work_home
+Are there barriers limiting your interest in providing televideo from home in the future?  If so, please list them.
+```{r}
+
+```
+prefer_service
+In the future, how would you prefer to provide services? (please check all that apply)
+1, Televideo | 2, Teleaudio | 3, In-person
+
+clincian_survey_dat
+```{r}
+n_clinician_survey = dim(clincian_survey_dat)[1]
+head(tech_cri_dat_complete[,118:120])
+prefer_service = tech_cri_dat_complete[,118:120]
+#prefer_service = apply(prefer_service, 2, as.factor)
+prefer_service = apply(prefer_service, 2, sum)
+prefer_service = data.frame(prefer_service)
+prefer_service$percent = prefer_service$prefer_service / n_clinician_survey
+prefer_service
+response_options =  c("Televideo", "Teleaudio", "In-person")
+prefer_service = data.frame(response_options, prefer_service)
+rownames(prefer_service) = NULL
+colnames(prefer_service)[2] = "count"
+prefer_service$percent = round(prefer_service$percent,2)
+prefer_service$percent = paste0(prefer_service$percent*100, "%")
+write.csv(prefer_service, "prefer_service.csv", row.names = FALSE)
+prefer_service
+
+```
+ideal_features
+Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)
+1, Integration with medical records | 2, Electronic assessment capabilities | 3, Ability to conduct group sessions | 4, Virtual walk-in capabilities | 5, Ability to collect signatures from clients | 6, Ability to send documents to clients | 7, Client's ability to schedule appointments | 8, Other feature(s) not listed here
+If you select select prefer_service___1 == 1
+
+```{r}
+clincian_survey_ideal_dat = subset(clincian_survey_dat, prefer_service___1 == 1)
+dim(clincian_survey_ideal_dat)
+n_clinician_survey = dim(clincian_survey_ideal_dat)[1]
+ideal_features = clincian_survey_ideal_dat[,121:128]
+ideal_features = apply(ideal_features, 2, sum)
+ideal_features = data.frame(ideal_features)
+ideal_features$percent = ideal_features$ideal_features / n_clinician_survey
+ideal_features
+response_options =  c("Integration with medical records", "Electronic assessment capabilities", "Ability to conduct group sessions", "Virtual walk-in capabilities", "Ability to collect signatures from clients", "Ability to send documents to clients", "Client's ability to schedule appointments", "Other feature(s) not listed here")
+ideal_features = data.frame(response_options, ideal_features)
+rownames(ideal_features) = NULL
+colnames(ideal_features)[2] = "count"
+ideal_features$percent = round(ideal_features$percent,2)
+ideal_features$percent = paste0(ideal_features$percent*100, "%")
+write.csv(ideal_features, "ideal_features.csv", row.names = FALSE)
+ideal_features
+
+```
+other_ideal_features
+Code later
+
+ideal_features_no
+Would any of these features increase your preference to use televideo in the future? (please check all that apply)
+[prefer_service(1)] <> '1' and ([job_title] <> '3' and [service_provided(6)] <> '1')
+service_provided__1 == 0 
+```{r}
+clincian_survey_ideal_no_dat = subset(clincian_survey_dat, prefer_service___1 == 0)
+dim(clincian_survey_ideal_no_dat)
+n_clinician_survey = dim(clincian_survey_ideal_no_dat)[1]
+ideal_features_no = clincian_survey_ideal_no_dat[,130:137]
+ideal_features_no = apply(ideal_features_no, 2, sum)
+ideal_features_no = data.frame(ideal_features_no)
+ideal_features_no$percent = ideal_features_no$ideal_features_no / n_clinician_survey
+ideal_features_no
+response_options =  c("Integration with medical records", "Electronic assessment capabilities", "Ability to conduct group sessions", "Virtual walk-in capabilities", "Ability to collect signatures from clients", "Ability to send documents to clients", "Client's ability to schedule appointments", "Other feature(s) not listed here")
+ideal_features_no = data.frame(response_options, ideal_features_no)
+rownames(ideal_features_no) = NULL
+colnames(ideal_features_no)[2] = "count"
+ideal_features_no$percent = round(ideal_features_no$percent,2)
+ideal_features_no$percent = paste0(ideal_features_no$percent*100, "%")
+write.csv(ideal_features_no, "ideal_features_no.csv", row.names = FALSE)
+ideal_features_no
+
+
+```
+other_ideal_features_nopref
+Code later
+
+Emotional social support
+available_listen
+listen_concern
+supports_emotions
+
+Instrumental social support
+supervision
+helpful_advice
+actions_decisions
+
+perceived organizational support 
+time_resources
+contribution
+extra_effort
+```{r}
+library(ggplot2)
+head(clincian_survey_dat)
+head(clincian_survey_dat[,139:147])
+supervisor_dat = clincian_survey_dat[,139:147]
+supervisor_dat[supervisor_dat == 6] = NA
+n_supervisor_dat = dim(supervisor_dat)[1]
+ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
+iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
+pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
+
+supervisor_dat = data.frame(ess, iss, pos)
+supervisor_dat = apply(supervisor_dat, 2, mean, na.rm = TRUE)
+supervisor_dat = data.frame(supervisor_dat)
+supervisor_dat
+var_names = c("Emotional social support", "Instrumental social support", "Perceived organizational support")
+supervisor_dat = data.frame(var_names, supervisor_dat)
+rownames(supervisor_dat) = NULL
+supervisor_dat
+## Get rid of total
+title_supervisor_dat = paste0("Supervison support", " ", "n=", n_supervisor_dat)
+plot_ess = ggplot(supervisor_dat, aes(x = var_names,y = supervisor_dat, fill = supervisor_dat))+
+  geom_bar(stat = "identity")+
+  labs(title=title_supervisor_dat, x ="Outcome", y = "Average rating")+
+  scale_y_continuous(limits = c(0,5))+
+  labs(fill = "")
+plot_ess
+
+```
 
