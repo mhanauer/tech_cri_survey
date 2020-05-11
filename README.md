@@ -641,3 +641,96 @@ plot_ess
 
 ```
 
+benefits
+Code later
+```{r}
+head(clincian_survey_dat$benefits)
+
+```
+barriers 
+Code later
+```{r}
+head(clincian_survey_dat$barriers)
+```
+something_else
+code later
+```{r}
+head(clincian_survey_dat$something_else, 15)
+
+```
+State
+1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
+tech_cri_dat_complete
+```{r}
+state_dat = na.omit(tech_cri_dat_complete$state)
+state_dat = data.frame(state = state_dat)
+n_state_dat = dim(state_dat)[1]
+state_dat = data.frame(freq(state_dat$state))
+## Get rid of total change to 6 later
+state_dat = state_dat[-6,]
+state_dat$var_names = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
+state_dat$Percent = state_dat$Percent / 100
+state_dat$Percent = round(state_dat$Percent, 2)*100
+state_dat$Percent = paste0(state_dat$Percent, "%")
+typeof(state_dat$Frequency)
+title_state = paste0("Which state do you currently live in?", " ", "n=", n_state_dat)
+plot_state = ggplot(state_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_state, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,n_state_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = state_dat$Percent, vjust = -.5)
+plot_state
+```
+age
+What is your age?
+1, 18 to 25 years old | 2, 26 to 34 years old | 3, 35 to 44 years old | 4, 45 to 54 years old | 5, 55 to 64 years old | 6, 65 to 74 years old | 7, 75+
+```{r}
+age_dat = na.omit(tech_cri_dat_complete$age)
+age_dat = data.frame(age = age_dat)
+n_age_dat = dim(age_dat)[1]
+age_dat = data.frame(freq(age_dat$age))
+## Get rid of total change to 8 later
+age_dat = age_dat[-8,]
+age_dat$var_names = c("18 to 25 years old", "26 to 34 years old", "35 to 44 years old", "45 to 54 years old", "55 to 64 years old", "65 to 74 years old", "75+")
+age_dat$Percent = age_dat$Percent / 100
+age_dat$Percent = round(age_dat$Percent, 2)*100
+age_dat$Percent = paste0(age_dat$Percent, "%")
+typeof(age_dat$Frequency)
+title_age = paste0("What is your age?", " ", "n=", n_age_dat)
+plot_age = ggplot(age_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_age, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,n_age_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = age_dat$Percent, vjust = -.5)
+plot_age
+
+
+```
+race
+What is your racial identity?
+1, White | 2, Black or African American | 3, American Indian or Alaska Native | 4, Asian | 5, Native Hawaiian or Other Pacific Islander | 6, Multiracial | 7, Another racial identity | 8, Prefer not to respond
+```{r}
+race_dat = na.omit(tech_cri_dat_complete$race)
+race_dat = data.frame(race = race_dat)
+n_race_dat = dim(race_dat)[1]
+race_dat = data.frame(freq(race_dat$race))
+## Get rid of total change to 9 later
+race_dat = race_dat[-9,]
+race_dat$var_names = c("White", "Black or African American", "American Indian or \n Alaska Native", "Asian", "Native Hawaiian or \n Other Pacific Islander", "Multiracial", "Another racial identity", "Prefer not to respond")
+race_dat$Percent = race_dat$Percent / 100
+race_dat$Percent = round(race_dat$Percent, 2)*100
+race_dat$Percent = paste0(race_dat$Percent, "%")
+typeof(race_dat$Frequency)
+title_race = paste0("What is your race?", " ", "n=", n_race_dat)
+plot_race = ggplot(race_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+  geom_bar(stat = "identity")+
+  labs(title=title_race, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,n_race_dat))+
+  theme(legend.position = "none")+
+  geom_text_repel(label = race_dat$Percent, vjust = -.5)
+plot_race
+
+
+```
