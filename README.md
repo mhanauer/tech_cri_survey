@@ -1,20 +1,23 @@
 ---
 title: "tech_cri"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 Load in data
-```{r}
+```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-11_0519.csv", header = TRUE, na.strings = c("", "N/A"))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-11_1534.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat[-c(1:6),] =tech_cri_dat
+
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
-head(tech_cri_dat_complete)
 ```
 Check missingness
-```{r}
+```{r echo=FALSE}
 library(naniar)
 library(descr)
 library(gt)
@@ -26,12 +29,12 @@ dim(tech_cri_dat)
 
 ### Clinician survey data 
 clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
-
+n_clinician_survey = dim(clincian_survey_dat)[1]
 ```
 
 
 Get complete n and graphs for job title and situation 
-```{r}
+```{r echo=FALSE}
 n_survey = dim(tech_cri_dat_complete)[1]
 n_survey
 
@@ -43,24 +46,22 @@ job_title_dat = data.frame(freq(job_title_dat$job_title))
 ## Get rid of total change to 4 later
 job_title_dat = job_title_dat[-4,]
 job_title_dat$var_names = c("Client Facing", "Client Facing Medical Provider", "Non Client Facing")
-job_title_dat$Frequency = as.factor(job_title_dat$Frequency)
 job_title_dat$Percent = job_title_dat$Percent / 100
-
-
-job_title_dat$Frequency = paste0("n=",job_title_dat$Frequency)
-plot_job_title = ggplot(job_title_dat, aes(x = var_names,y = Percent, fill = var_names))+
+job_title_dat$Percent = round(job_title_dat$Percent, 2)*100
+job_title_dat$Percent = paste0(job_title_dat$Percent, "%")
+plot_job_title = ggplot(job_title_dat, aes(x = var_names,y =Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
-  labs(title="Count and percent of job title", y = "Percent", x = "Response option")+
-  scale_y_continuous(labels = scales::percent, limits = c(0,1))+
+  labs(title="Count and percent of job title", y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,n_survey))+
   theme(legend.position = "none")+
-  geom_text_repel(label = job_title_dat$Frequency, vjust = -.5)
+  geom_text_repel(label = job_title_dat$Percent, vjust = -.5)
 plot_job_title
 
 
 ```
 Graph of situation
 1, I am working from home | 2, I am working from a Centerstone office | 3, I am working both from home some days and at a Centerstone office some days | 4, I am not working at all (On Leave or Cannot Work From Home or Office)
-```{r}
+```{r echo=FALSE}
 situation_dat = na.omit(tech_cri_dat_complete$situation)
 situation_dat = data.frame(situation = situation_dat)
 
@@ -70,20 +71,18 @@ situation_dat = situation_dat[-5,]
 situation_dat$var_names = c("Working from home", "Centerstone office", "Working from home and \n Centerstone office", "Not working")
 
 situation_dat$var_names = factor(situation_dat$var_names, levels = c("Working from home", "Centerstone office", "Working from home and \n Centerstone office", "Not working"))
-situation_dat$Frequency = as.factor(situation_dat$Frequency)
-situation_dat$Percent = situation_dat$Percent / 100
+situation_dat$Percent = paste0(round(situation_dat$Percent,0), "%") 
 ### Need this for later
 n_why = situation_dat
 write.csv(n_why, "n_why.csv", row.names = FALSE)
 n_why = read.csv("n_why.csv", header = TRUE)
 n_why
-situation_dat$Frequency = paste0("n=",situation_dat$Frequency)
-plot_situation = ggplot(situation_dat, aes(x = var_names,y = Percent, fill = var_names))+
+plot_situation = ggplot(situation_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title="Count and percent of job title", y = "Percent", x = "Response option")+
-  scale_y_continuous(labels = scales::percent, limits = c(0,1))+
+  scale_y_continuous(limits = c(0,n_survey))+
   theme(legend.position = "none")+
-  geom_text_repel(label = situation_dat$Frequency, vjust = -.5)
+  geom_text_repel(label = situation_dat$Percent, vjust = -.5)
 plot_situation
 
 
@@ -95,8 +94,7 @@ Home productivity
 3, I lack enabling technology equipment (Examples: monitor, headset, webcam, phone) 
 4, My workspace is not ideal (lacks space, lacks privacy, inadequate furnishing) 
 5, Other
-```{r}
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 home_productive =  tech_cri_dat_complete[,6:10]
 #home_productive = apply(home_productive, 2, as.factor)
 home_productive = apply(home_productive, 2, sum)
@@ -112,7 +110,6 @@ colnames(home_productive)[2] = "count"
 home_productive$percent = round(home_productive$percent,2)
 home_productive$percent = paste0(home_productive$percent*100, "%")
 home_productive = home_productive[order(home_productive$count,decreasing = TRUE),]
-home_productive
 write.csv(home_productive, "home_productive.csv", row.names = FALSE)
 
 title_home_productive = paste0("What barriers do you have to working from home at full productivity?", " ", "n=", n_clinician_survey)
@@ -127,7 +124,7 @@ gtsave(table_home_productive, "table_home_productive.png")
 
 ```
 Qualitative other barriers at home code later
-```{r}
+```{r echo=FALSE}
 barriers_home_complete =  na.omit(tech_cri_dat_complete$other_barriers_home)
 length(barriers_home_complete)
 write.csv(barriers_home_complete, "barriers_home_complete.csv", row.names = FALSE)
@@ -138,11 +135,7 @@ Take n_why and divide each by that number to get the percent who answered yes to
 n_why[2,1]
 I am working in the office because: 
 1, My job is essential and cannot be performed remotely | 2, I have poor internet/connection at home | 3, I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone) | 4, My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing) | 5, I am choosing (with leadership permission) to continue to work in the office
-```{r}
-head(tech_cri_dat_complete[,12:16])
-tech_cri_dat_complete[,12:16]
-
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 office_why = tech_cri_dat_complete[,12:16]
 #office_why = apply(office_why, 2, as.factor)
 office_why = apply(office_why, 2, sum)
@@ -173,11 +166,7 @@ gtsave(table_office_why, "table_office_why.png")
 barriers_office
 n_why[2,1]
 1, I have no barriers and am working productively. | 2, I lack enabling technology equipment in the office (Examples: monitor, headset, webcam, phone | 3, Other
-```{r}
-head(tech_cri_dat_complete[,17:19])
-tech_cri_dat_complete[,12:16]
-
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 barriers_office = tech_cri_dat_complete[,17:19]
 #barriers_office = apply(barriers_office, 2, as.factor)
 barriers_office = apply(barriers_office, 2, sum)
@@ -207,7 +196,7 @@ gtsave(table_barriers_office, "table_barriers_office.png")
 other_barriers_office
 Please describe the barriers.
 Code later
-```{r}
+```{r echo=FALSE}
 
 ```
 
@@ -217,11 +206,7 @@ office_home_why
 I am working in the office some days because:
 1, Parts of my job cannot be performed remotely | 2, I am rotating with other staff covering office based tasks | 3, I have poor internet/connection at home and need to be on the network for my work. | 4, I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone). | 5, My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing) | 6, I am choosing (with leadership permission) to continue to work in the office part of the time.
 n_why[3,1]
-```{r}
-head(tech_cri_dat_complete[,21:26])
-tech_cri_dat_complete[,12:16]
-
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 office_home_why = tech_cri_dat_complete[,21:26]
 #office_home_why = apply(office_home_why, 2, as.factor)
 office_home_why = apply(office_home_why, 2, sum)
@@ -253,10 +238,7 @@ barriers_office_home
 What barriers if any do you have working in the office?
 1, I have no barriers and am working productively. | 2, I lack enabling technology equipment in the office (Examples: monitor, headset, webcam, phone | 3, Other
 n_why[3,1]
-```{r}
-head(tech_cri_dat_complete[,27:29])
-
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 barriers_office_home = tech_cri_dat_complete[,27:29]
 #barriers_office_home = apply(barriers_office_home, 2, as.factor)
 barriers_office_home = apply(barriers_office_home, 2, sum)
@@ -287,7 +269,7 @@ gtsave(table_barriers_office_home, "table_barriers_office_home.png")
 other_barriers_office_home
 Please describe the other barriers.
 Code later
-```{r}
+```{r echo=FALSE}
 
 ```
 
@@ -298,12 +280,10 @@ Only two responses makes sense, because people not working are not checking thei
 service_provided
 Which of Centerstone's televideo or teleaudio services have you provided to client(s)? (please check all that apply)
 1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
-```{r}
+```{r echo=FALSE}
 
 n_clinician_survey = subset(tech_cri_dat_complete, job_title != 3)
 n_clinician_survey = dim(n_clinician_survey)[1]
-head(tech_cri_dat_complete[,36:41])
-head(tech_cri_dat_complete)
 service_provided = tech_cri_dat_complete[,36:41]
 #service_provided = apply(service_provided, 2, as.factor)
 service_provided = apply(service_provided, 2, sum)
@@ -334,9 +314,7 @@ barriers_snap_md_use
 We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply. 
 1, Difficulty developing treatment plans | 2, Difficulty coordinating services across multiple providers | 3, Client's limited access to technology | 4, Client's limited access to private space | 5, Lack of clear policies for conducting televideo / teleaudio | 6, Lack of security for conducting televideo / teleaudio | 7, Decreased rapport with client(s) | 8, Difficulty gathering data from client(s) | 9, Difficulty accessing client(s) information | 10, Clients are uncomfortable with the technology | 11, Lack of training opportunities | 12, Other barriers not listed above
 n = service_provided[4:5,2]
-```{r}
-head(tech_cri_dat_complete[,42:53])
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 barriers_snap_md_use = tech_cri_dat_complete[,42:53]
 #barriers_snap_md_use = apply(barriers_snap_md_use, 2, as.factor)
 barriers_snap_md_use = apply(barriers_snap_md_use, 2, sum)
@@ -372,9 +350,7 @@ Code later
 facilitate_snapmd
 We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.
 1, Increased work life balance | 2, Decreased commute time | 3, Increased schedule flexibility | 4, Increased access to difficult to reach clients | 5, Quicker access to clients | 6, Increased convenience | 7, Other factors not listed above
-```{r}
-head(tech_cri_dat_complete[,55:61])
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 facilitate_snapmd = tech_cri_dat_complete[,55:61]
 #facilitate_snapmd = apply(facilitate_snapmd, 2, as.factor)
 facilitate_snapmd = apply(facilitate_snapmd, 2, sum)
@@ -411,9 +387,7 @@ Not needed only 9 responses
 
 barriers_zoom_use
 We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.
-```{r}
-head(tech_cri_dat_complete[,63:74])
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 barriers_zoom_use = tech_cri_dat_complete[,63:74]
 #barriers_zoom_use = apply(barriers_zoom_use, 2, as.factor)
 barriers_zoom_use = apply(barriers_zoom_use, 2, sum)
@@ -448,9 +422,7 @@ Code later
 
 facilitate_zoom
 We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.
-```{r}
-head(tech_cri_dat_complete[,76:82])
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 facilitate_zoom = tech_cri_dat_complete[,76:82]
 #facilitate_zoom = apply(facilitate_zoom, 2, as.factor)
 facilitate_zoom = apply(facilitate_zoom, 2, sum)
@@ -487,9 +459,7 @@ barriers_snap_md
 Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)
 n = service_provided[c(1:3,6),2]
 Not SnapMD selected
-```{r}
-head(tech_cri_dat_complete[,84:95])
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 barriers_snap_md = tech_cri_dat_complete[,84:95]
 #barriers_snap_md = apply(barriers_snap_md, 2, as.factor)
 barriers_snap_md = apply(barriers_snap_md, 2, sum)
@@ -528,9 +498,7 @@ code later
 
 barriers_zoom
 Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)
-```{r}
-head(tech_cri_dat_complete[,97:108])
-head(tech_cri_dat_complete)
+```{r echo=FALSE}
 barriers_zoom = tech_cri_dat_complete[,97:108]
 #barriers_zoom = apply(barriers_zoom, 2, as.factor)
 barriers_zoom = apply(barriers_zoom, 2, sum)
@@ -565,13 +533,9 @@ Televideo has helped me communicate with my client(s).
 1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
 
 Let's do an average score and then plot by all four of them
-```{r}
+```{r echo=FALSE}
 ### Client survey data
 #clincian_survey_dat
-
-library(ggplot2)
-head(tech_cri_dat_complete)
-head(tech_cri_dat_complete[,110:113])
 telehealth_sat_dat = clincian_survey_dat
 n_telehealth_sat_dat = dim(telehealth_sat_dat)[1]
 ## Subset 6, because you are a dumbass!!!!  6 = N/A
@@ -599,11 +563,10 @@ plot_telehealth_sat
 comfort_televideo
 What is your level of comfort with televideo?
 1, Very uncomfortable | 2, Uncomfortable | 3, Somewhat uncomfortable | 4, Neither uncomfortable nor comfortable | 5, Somewhat comfortable | 6, Comfortable | 7, Very comfortable
-```{r}
+```{r echo=FALSE}
 
 ### Client survey data
 #clincian_survey_dat
-head(clincian_survey_dat[,114:120])
 comfort_televideo_dat = na.omit(clincian_survey_dat$comfort_televideo)
 comfort_televideo_dat = data.frame(comfort_televideo = comfort_televideo_dat)
 n_comfort_televideo_dat = dim(comfort_televideo_dat)[1]
@@ -628,7 +591,7 @@ plot_comfort_televideo
 ```
 increase_comfort
 Is there something Centerstone can do to increase your comfort level?  If so, please describe what Centerstone can do.
-```{r}
+```{r echo=FALSE}
 
 ```
 interest_working_home
@@ -636,7 +599,7 @@ What is your level of interest in providing televideo services in the future?
 1, Very disinterested | 2, Disinterested | 3, Somewhat disinterested | 4, Neither disinterested nor interested | 5, Somewhat interested | 6, Interested | 7, Very interested
 
 Also include those who service_provided != 6
-```{r}
+```{r echo=FALSE}
 clincian_survey_dat_int = subset(clincian_survey_dat, service_provided___6 != 1)
 interest_working_home_dat = na.omit(clincian_survey_dat_int$interest_working_home)
 interest_working_home_dat = data.frame(interest_working_home = interest_working_home_dat)
@@ -662,7 +625,7 @@ plot_interest_working_home
 ```
 barriers_work_home
 Are there barriers limiting your interest in providing televideo from home in the future?  If so, please list them.
-```{r}
+```{r echo=FALSE}
 
 ```
 prefer_service
@@ -670,9 +633,8 @@ In the future, how would you prefer to provide services? (please check all that 
 1, Televideo | 2, Teleaudio | 3, In-person
 
 clincian_survey_dat
-```{r}
+```{r echo=FALSE}
 n_clinician_survey = dim(clincian_survey_dat)[1]
-head(tech_cri_dat_complete[,118:120])
 prefer_service = tech_cri_dat_complete[,118:120]
 #prefer_service = apply(prefer_service, 2, as.factor)
 prefer_service = apply(prefer_service, 2, sum)
@@ -708,7 +670,7 @@ Please select the features you would like to see in your future ideal televideo 
 1, Integration with medical records | 2, Electronic assessment capabilities | 3, Ability to conduct group sessions | 4, Virtual walk-in capabilities | 5, Ability to collect signatures from clients | 6, Ability to send documents to clients | 7, Client's ability to schedule appointments | 8, Other feature(s) not listed here
 If you select select prefer_service___1 == 1
 
-```{r}
+```{r echo=FALSE}
 clincian_survey_ideal_dat = subset(clincian_survey_dat, prefer_service___1 == 1)
 dim(clincian_survey_ideal_dat)
 n_clinician_survey = dim(clincian_survey_ideal_dat)[1]
@@ -747,7 +709,7 @@ ideal_features_no
 Would any of these features increase your preference to use televideo in the future? (please check all that apply)
 [prefer_service(1)] <> '1' and ([job_title] <> '3' and [service_provided(6)] <> '1')
 service_provided__1 == 0 
-```{r}
+```{r echo=FALSE}
 clincian_survey_ideal_no_dat = subset(clincian_survey_dat, prefer_service___1 == 0)
 dim(clincian_survey_ideal_no_dat)
 n_clinician_survey = dim(clincian_survey_ideal_no_dat)[1]
@@ -797,10 +759,7 @@ perceived organizational support
 time_resources
 contribution
 extra_effort
-```{r}
-library(ggplot2)
-head(clincian_survey_dat)
-head(clincian_survey_dat[,139:147])
+```{r echo=FALSE}
 supervisor_dat = clincian_survey_dat[,139:147]
 supervisor_dat[supervisor_dat == 6] = NA
 n_supervisor_dat = dim(supervisor_dat)[1]
@@ -829,25 +788,25 @@ plot_ess
 
 benefits
 Code later
-```{r}
-head(clincian_survey_dat$benefits)
+```{r echo=FALSE}
+#head(clincian_survey_dat$benefits)
 
 ```
 barriers 
 Code later
-```{r}
-head(clincian_survey_dat$barriers)
+```{r echo=FALSE}
+#head(clincian_survey_dat$barriers)
 ```
 something_else
 code later
-```{r}
-head(clincian_survey_dat$something_else, 15)
+```{r echo=FALSE}
+#head(clincian_survey_dat$something_else, 15)
 
 ```
 State
 1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 tech_cri_dat_complete
-```{r}
+```{r echo=FALSE}
 state_dat = na.omit(tech_cri_dat_complete$state)
 state_dat = data.frame(state = state_dat)
 n_state_dat = dim(state_dat)[1]
@@ -871,7 +830,7 @@ plot_state
 age
 What is your age?
 1, 18 to 25 years old | 2, 26 to 34 years old | 3, 35 to 44 years old | 4, 45 to 54 years old | 5, 55 to 64 years old | 6, 65 to 74 years old | 7, 75+
-```{r}
+```{r echo=FALSE}
 age_dat = na.omit(tech_cri_dat_complete$age)
 age_dat = data.frame(age = age_dat)
 n_age_dat = dim(age_dat)[1]
@@ -897,7 +856,7 @@ plot_age
 race
 What is your racial identity?
 1, White | 2, Black or African American | 3, American Indian or Alaska Native | 4, Asian | 5, Native Hawaiian or Other Pacific Islander | 6, Multiracial | 7, Another racial identity | 8, Prefer not to respond
-```{r}
+```{r echo=FALSE}
 race_dat = na.omit(tech_cri_dat_complete$race)
 race_dat = data.frame(race = race_dat)
 n_race_dat = dim(race_dat)[1]
@@ -923,7 +882,7 @@ plot_race
 Gender
 What is your gender identity?
 1, Male | 2, Female | 3, Another gender identity | 4, Prefer not to respond
-```{r}
+```{r echo=FALSE}
 gender_dat = na.omit(tech_cri_dat_complete$gender)
 gender_dat = data.frame(gender = gender_dat)
 n_gender_dat = dim(gender_dat)[1]
@@ -947,7 +906,7 @@ plot_gender
 job_title_extend
 Which option best describes your job title?
 1, Psychiatrists | 2, Nurse Practitioners | 3, Clinician - Masters, non-licensed | 4, Clinician - Masters, licensed | 5, Clinician - Bachelors | 6, Peer Support Specialist | 7, Another job title
-```{r}
+```{r echo=FALSE}
 job_title_extend_dat = na.omit(tech_cri_dat_complete$job_title_extend)
 job_title_extend_dat = data.frame(job_title_extend = job_title_extend_dat)
 n_job_title_extend_dat = dim(job_title_extend_dat)[1]
@@ -970,13 +929,7 @@ plot_job_title_extend
 
 ```
 other_job_title
-```{r}
+```{r echo=FALSE}
 head(tech_cri_dat_complete[,159],15)
 
 ```
-
-
-
-
-
-
