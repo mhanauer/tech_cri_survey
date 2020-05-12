@@ -16,7 +16,8 @@ tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
 ```
-Check missingness
+Check missingness, create data sets, and n's
+1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
 ```{r echo=FALSE}
 library(naniar)
 library(descr)
@@ -34,6 +35,15 @@ clincian_survey_dat = subset(clincian_survey_dat, service_provided___6 != 1)
 n_clinician_survey = dim(clincian_survey_dat)[1]
 n_survey = dim(tech_cri_dat_complete)[1]
 n_survey
+
+### For barriers and faciliators to Zoom and SnapMD need the number of people who used each.  This means selecting 
+### SnapMD
+n_snap_md = ifelse(clincian_survey_dat$service_provided___4 == 1,1, ifelse(clincian_survey_dat$service_provided___5 == 1, 1, 0))
+n_snap_md = sum(n_snap_md)
+### Zoom
+n_zoom = ifelse(clincian_survey_dat$service_provided___2 == 1,1, ifelse(clincian_survey_dat$service_provided___3 == 1, 1, 0))
+n_zoom = sum(n_zoom)
+
 ```
 
 
@@ -266,9 +276,10 @@ Code later
 
 ```
 
-
+#############
 not_working_why
 Only two responses makes sense, because people not working are not checking their email.
+#####################
 
 service_provided
 Which of Centerstone's televideo or teleaudio services have you provided to client(s)? (please check all that apply)
@@ -303,13 +314,12 @@ gtsave(table_service_provided, "table_service_provided.png")
 barriers_snap_md_use
 We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply. 
 1, Difficulty developing treatment plans | 2, Difficulty coordinating services across multiple providers | 3, Client's limited access to technology | 4, Client's limited access to private space | 5, Lack of clear policies for conducting televideo / teleaudio | 6, Lack of security for conducting televideo / teleaudio | 7, Decreased rapport with client(s) | 8, Difficulty gathering data from client(s) | 9, Difficulty accessing client(s) information | 10, Clients are uncomfortable with the technology | 11, Lack of training opportunities | 12, Other barriers not listed above
-n = service_provided[4:5,2]
+
 ```{r echo=FALSE}
 barriers_snap_md_use = tech_cri_dat_complete[,42:53]
-#barriers_snap_md_use = apply(barriers_snap_md_use, 2, as.factor)
 barriers_snap_md_use = apply(barriers_snap_md_use, 2, sum)
 barriers_snap_md_use = data.frame(barriers_snap_md_use)
-barriers_snap_md_use$percent = barriers_snap_md_use$barriers_snap_md_use / sum(service_provided[4:5,2])
+barriers_snap_md_use$percent = barriers_snap_md_use$barriers_snap_md_use / n_snap_md
 barriers_snap_md_use
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_snap_md_use = data.frame(response_options, barriers_snap_md_use)
@@ -321,11 +331,11 @@ write.csv(barriers_snap_md_use, "barriers_snap_md_use.csv", row.names = FALSE)
 barriers_snap_md_use
 barriers_snap_md_use = barriers_snap_md_use[order(barriers_snap_md_use$count,decreasing = TRUE),]
 
-title_barriers_snap_md_use = paste0("We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply.", " ", "n=", sum(service_provided[4:5,2]))
+title_barriers_snap_md_use = paste0("We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply.", " ", "n=", n_snap_md)
 table_barriers_snap_md_use = 
   gt(barriers_snap_md_use) %>%
   tab_header(title = title_barriers_snap_md_use)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_snap_md_use
 
@@ -343,7 +353,7 @@ We are wondering if SnapMD makes it easier to provide services to clients relati
 facilitate_snapmd = tech_cri_dat_complete[,55:61]
 facilitate_snapmd = apply(facilitate_snapmd, 2, sum)
 facilitate_snapmd = data.frame(facilitate_snapmd)
-facilitate_snapmd$percent = facilitate_snapmd$facilitate_snapmd / sum(service_provided[4:5,2])
+facilitate_snapmd$percent = facilitate_snapmd$facilitate_snapmd / n_snap_md
 facilitate_snapmd
 response_options =  c("Increased work life balance", "Decreased commute time", "Increased schedule flexibility", "Increased access to difficult to reach clients", "Quicker access to clients", "Increased convenience", "Other factors not listed above")
 facilitate_snapmd = data.frame(response_options, facilitate_snapmd)
@@ -353,11 +363,11 @@ facilitate_snapmd$percent = round(facilitate_snapmd$percent,2)
 facilitate_snapmd$percent = paste0(facilitate_snapmd$percent*100, "%")
 
 facilitate_snapmd = facilitate_snapmd[order(facilitate_snapmd$count,decreasing = TRUE),]
-title_facilitate_snapmd = paste0("We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", sum(service_provided[4:5,2]))
+title_facilitate_snapmd = paste0("We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", n_snap_md)
 table_facilitate_snapmd = 
   gt(facilitate_snapmd) %>%
   tab_header(title = title_facilitate_snapmd)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_facilitate_snapmd
 gtsave(table_facilitate_snapmd, "table_facilitate_snapmd.png")
@@ -375,7 +385,7 @@ barriers_zoom_use = tech_cri_dat_complete[,63:74]
 #barriers_zoom_use = apply(barriers_zoom_use, 2, as.factor)
 barriers_zoom_use = apply(barriers_zoom_use, 2, sum)
 barriers_zoom_use = data.frame(barriers_zoom_use)
-barriers_zoom_use$percent = barriers_zoom_use$barriers_zoom_use / sum(service_provided[c(1,3),2])
+barriers_zoom_use$percent = barriers_zoom_use$barriers_zoom_use / n_zoom
 barriers_zoom_use
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_zoom_use = data.frame(response_options, barriers_zoom_use)
@@ -385,11 +395,11 @@ barriers_zoom_use$percent = round(barriers_zoom_use$percent,2)
 barriers_zoom_use$percent = paste0(barriers_zoom_use$percent*100, "%")
 barriers_zoom_use = barriers_zoom_use[order(barriers_zoom_use$count,decreasing = TRUE),]
 
-title_barriers_zoom_use = paste0("We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.", " ", "n=", sum(service_provided[c(1,3),2]))
+title_barriers_zoom_use = paste0("We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.", " ", "n=", n_zoom)
 table_barriers_zoom_use = 
   gt(barriers_zoom_use) %>%
   tab_header(title = title_barriers_zoom_use)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_zoom_use
 gtsave(table_barriers_zoom_use, "table_barriers_zoom_use.png")
@@ -408,7 +418,7 @@ facilitate_zoom = tech_cri_dat_complete[,76:82]
 #facilitate_zoom = apply(facilitate_zoom, 2, as.factor)
 facilitate_zoom = apply(facilitate_zoom, 2, sum)
 facilitate_zoom = data.frame(facilitate_zoom)
-facilitate_zoom$percent = facilitate_zoom$facilitate_zoom / sum(service_provided[c(1,3),2])
+facilitate_zoom$percent = facilitate_zoom$facilitate_zoom / n_zoom
 facilitate_zoom
 response_options =  c("Increased work life balance", "Decreased commute time", "Increased schedule flexibility", "Increased access to difficult to reach clients", "Quicker access to clients", "Increased convenience", "Other factors not listed above")
 facilitate_zoom = data.frame(response_options, facilitate_zoom)
@@ -423,7 +433,7 @@ title_facilitate_zoom = paste0("We are wondering if Zoom makes it easier to prov
 table_facilitate_zoom = 
   gt(facilitate_zoom) %>%
   tab_header(title = title_facilitate_zoom)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they used Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_facilitate_zoom
 gtsave(table_facilitate_zoom, "table_facilitate_zoom.png")
@@ -444,7 +454,7 @@ barriers_snap_md = tech_cri_dat_complete[,84:95]
 #barriers_snap_md = apply(barriers_snap_md, 2, as.factor)
 barriers_snap_md = apply(barriers_snap_md, 2, sum)
 barriers_snap_md = data.frame(barriers_snap_md)
-barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / sum(service_provided[1:4,2])
+barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / n_snap_md
 barriers_snap_md
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_snap_md = data.frame(response_options, barriers_snap_md)
@@ -455,11 +465,11 @@ barriers_snap_md$percent = paste0(barriers_snap_md$percent*100, "%")
 
 barriers_snap_md = barriers_snap_md[order(barriers_snap_md$count,decreasing = TRUE),]
 
-title_barriers_snap_md = paste0("Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)", " ", "n=", sum(service_provided[1:4,2]))
+title_barriers_snap_md = paste0("Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)", " ", "n=", n_snap_md)
 table_barriers_snap_md = 
   gt(barriers_snap_md) %>%
   tab_header(title = title_barriers_snap_md)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_snap_md
 
@@ -484,7 +494,7 @@ barriers_zoom = tech_cri_dat_complete[,97:108]
 #barriers_zoom = apply(barriers_zoom, 2, as.factor)
 barriers_zoom = apply(barriers_zoom, 2, sum)
 barriers_zoom = data.frame(barriers_zoom)
-barriers_zoom$percent = barriers_zoom$barriers_zoom / sum(service_provided[c(2,4:6),2])
+barriers_zoom$percent = barriers_zoom$barriers_zoom / n_zoom
 barriers_zoom
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_zoom = data.frame(response_options, barriers_zoom)
@@ -496,16 +506,15 @@ barriers_zoom$percent = paste0(barriers_zoom$percent*100, "%")
 
 barriers_zoom = barriers_zoom[order(barriers_zoom$count,decreasing = TRUE),]
 
-title_barriers_zoom = paste0("Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)", " ", "n=", sum(service_provided[c(2,4:6),2]))
+title_barriers_zoom = paste0("Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)", " ", "n=", n_zoom)
 table_barriers_zoom = 
   gt(barriers_zoom) %>%
   tab_header(title = title_barriers_zoom)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they used Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_zoom
 
 gtsave(table_barriers_zoom, "table_barriers_zoom.png")
-
 ```
 other_zoom_barriers
 Please list the other barrier(s).
@@ -717,7 +726,6 @@ table_ideal_features_no =
 table_ideal_features_no
 
 gtsave(table_ideal_features_no, "table_ideal_features_no.png")
-
 
 ```
 other_ideal_features_nopref
