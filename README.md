@@ -654,11 +654,11 @@ If you select select prefer_service___1 == 1
 ```{r echo=FALSE}
 clincian_survey_ideal_dat = subset(clincian_survey_dat, prefer_service___1 == 1)
 dim(clincian_survey_ideal_dat)
-n_clinician_survey = dim(clincian_survey_ideal_dat)[1]
+n_clincian_survey_ideal = dim(clincian_survey_ideal_dat)[1]
 ideal_features = clincian_survey_ideal_dat[,121:128]
 ideal_features = apply(ideal_features, 2, sum)
 ideal_features = data.frame(ideal_features)
-ideal_features$percent = ideal_features$ideal_features / n_clinician_survey
+ideal_features$percent = ideal_features$ideal_features / n_clincian_survey_ideal
 ideal_features
 response_options =  c("Integration with medical records", "Electronic assessment capabilities", "Ability to conduct group sessions", "Virtual walk-in capabilities", "Ability to collect signatures from clients", "Ability to send documents to clients", "Client's ability to schedule appointments", "Other feature(s) not listed here")
 ideal_features = data.frame(response_options, ideal_features)
@@ -666,25 +666,26 @@ rownames(ideal_features) = NULL
 colnames(ideal_features)[2] = "count"
 ideal_features$percent = round(ideal_features$percent,2)
 ideal_features$percent = paste0(ideal_features$percent*100, "%")
-write.csv(ideal_features, "ideal_features.csv", row.names = FALSE)
-ideal_features
 
 ideal_features = ideal_features[order(ideal_features$count,decreasing = TRUE),]
 
-library(gt)
-title_ideal_features = paste0("Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)", " ", "n=", n_clinician_survey)
+title_ideal_features = paste0("Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)", " ", "n=", n_clincian_survey_ideal)
 table_ideal_features = 
   gt(ideal_features) %>%
   tab_header(title = title_ideal_features)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  Only respondents who selected at least televideo.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  Only respondents who selected at least televideo and are client facing.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_ideal_features
-library(webshot)
+
 gtsave(table_ideal_features, "table_ideal_features.png")
 
 ```
 other_ideal_features
 Code later
+```{r}
+
+```
+
 
 ideal_features_no
 Would any of these features increase your preference to use televideo in the future? (please check all that apply)
@@ -693,32 +694,28 @@ service_provided__1 == 0
 ```{r echo=FALSE}
 clincian_survey_ideal_no_dat = subset(clincian_survey_dat, prefer_service___1 == 0)
 dim(clincian_survey_ideal_no_dat)
-n_clinician_survey = dim(clincian_survey_ideal_no_dat)[1]
+n_clincian_survey_ideal_no = dim(clincian_survey_ideal_no_dat)[1]
 ideal_features_no = clincian_survey_ideal_no_dat[,130:137]
 ideal_features_no = apply(ideal_features_no, 2, sum)
 ideal_features_no = data.frame(ideal_features_no)
-ideal_features_no$percent = ideal_features_no$ideal_features_no / n_clinician_survey
-ideal_features_no
+ideal_features_no$percent = ideal_features_no$ideal_features_no / n_clincian_survey_ideal_no
 response_options =  c("Integration with medical records", "Electronic assessment capabilities", "Ability to conduct group sessions", "Virtual walk-in capabilities", "Ability to collect signatures from clients", "Ability to send documents to clients", "Client's ability to schedule appointments", "Other feature(s) not listed here")
 ideal_features_no = data.frame(response_options, ideal_features_no)
 rownames(ideal_features_no) = NULL
 colnames(ideal_features_no)[2] = "count"
 ideal_features_no$percent = round(ideal_features_no$percent,2)
 ideal_features_no$percent = paste0(ideal_features_no$percent*100, "%")
-write.csv(ideal_features_no, "ideal_features_no.csv", row.names = FALSE)
-ideal_features_no
 
 ideal_features_no = ideal_features_no[order(ideal_features_no$count,decreasing = TRUE),]
 
-library(gt)
-title_ideal_features_no = paste0("Would any of these features increase your preference to use televideo in the future? (please check all that apply)", " ", "n=", n_clinician_survey)
+title_ideal_features_no = paste0("Would any of these features increase your preference to use televideo in the future? (please check all that apply)", " ", "n=", n_clincian_survey_ideal_no)
 table_ideal_features_no = 
   gt(ideal_features_no) %>%
   tab_header(title = title_ideal_features_no)%>%
-  tab_footnote(footnote = "Respondants can select all that apply so count / percent can add up to more than total n / 100%. Only respondents who did not select televideo." ,  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondants can select all that apply so count / percent can add up to more than total n / 100%. Only respondents who did not select televideo and are client facing." ,  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_ideal_features_no
-library(webshot)
+
 gtsave(table_ideal_features_no, "table_ideal_features_no.png")
 
 
@@ -740,10 +737,11 @@ perceived organizational support
 time_resources
 contribution
 extra_effort
+
+1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
 ```{r echo=FALSE}
 supervisor_dat = clincian_survey_dat[,139:147]
 supervisor_dat[supervisor_dat == 6] = NA
-n_supervisor_dat = dim(supervisor_dat)[1]
 ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
 iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
 pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
@@ -755,9 +753,8 @@ supervisor_dat
 var_names = c("Emotional social support", "Instrumental social support", "Perceived organizational support")
 supervisor_dat = data.frame(var_names, supervisor_dat)
 rownames(supervisor_dat) = NULL
-supervisor_dat
 ## Get rid of total
-title_supervisor_dat = paste0("Supervison support", " ", "n=", n_supervisor_dat)
+title_supervisor_dat = paste0("Supervison support", " ", "n=", n_clinician_survey)
 plot_ess = ggplot(supervisor_dat, aes(x = var_names,y = supervisor_dat, fill = supervisor_dat))+
   geom_bar(stat = "identity")+
   labs(title=title_supervisor_dat, x ="Outcome", y = "Average rating")+
