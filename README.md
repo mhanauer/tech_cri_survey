@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-11_1534.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-12_1032.csv", header = TRUE, na.strings = c(""))
 tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
@@ -138,9 +138,42 @@ gtsave(table_home_productive, "table_home_productive.png")
 ```
 Qualitative other barriers at home code later
 ```{r echo=FALSE}
-barriers_home_complete =  na.omit(tech_cri_dat_complete$other_barriers_home)
+other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
 length(barriers_home_complete)
-write.csv(barriers_home_complete, "barriers_home_complete.csv", row.names = FALSE)
+write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
+### other_barriers_home_complete
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_barriers_home_complete_dat[,2:5]
+theme_1 = describe.factor(other_barriers$Theme.1)
+theme_1 = data.frame(theme_1)
+### Stack all the themes and keep the original n for the percentage what about state
+### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
+n_other_barriers = dim(other_barriers)[1]
+other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
+other_barriers_long_complete = na.omit(other_barriers_long)
+other_barriers_long_complete
+other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
+other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
+other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent,2)*100
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state, -other_barriers_long_complete_results$percent),]
+
+other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
+other_barriers_long_complete_results
+#1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
+#describe.factor(other_barriers_long_complete_results$state)
+colnames(other_barriers_long_complete_results)[2] = "Theme"
+other_barriers_long_complete_results$percent
+gt(other_barriers_long_complete_results)
+title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
+table_other_barriers_home = 
+  gt(other_barriers_long_complete_results) %>%
+  tab_header(title = title_other_barriers)%>%
+  tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
+table_other_barriers_home
+
+gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 ```
 office_why
 I am working in the office because: 
