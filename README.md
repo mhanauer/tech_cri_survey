@@ -29,9 +29,13 @@ miss_var_summary(tech_cri_dat_complete)
 dim(tech_cri_dat_complete)
 dim(tech_cri_dat)
 
+tech_cri_dat_complete$state = ifelse(tech_cri_dat_complete$state == 1, "Indiana", ifelse(tech_cri_dat_complete$state == 2, "Florida", ifelse(tech_cri_dat_complete$state == 3, "Tennessee", ifelse(tech_cri_dat_complete$state == 4, "Illinois", ifelse(tech_cri_dat_complete$state == 5, "Another state", "Wrong")))))
+tech_cri_dat_complete$state = as.factor(tech_cri_dat_complete$state)
+tech_cri_dat_complete$state = factor(tech_cri_dat_complete$state, levels = c("Indiana", "Tennessee", "Illinois", "Florida", "Another state"))
 ### Clinician survey data 
 clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
 clincian_survey_dat = subset(clincian_survey_dat, service_provided___6 != 1)
+
 n_clinician_survey = dim(clincian_survey_dat)[1]
 n_survey = dim(tech_cri_dat_complete)[1]
 n_survey
@@ -49,55 +53,44 @@ n_zoom = sum(n_zoom)
 
 Get complete n and graphs for job title and situation 
 ```{r echo=FALSE}
-job_title_dat = na.omit(tech_cri_dat_complete$job_title)
-n_job_title = length(job_title_dat)
-job_title_dat = data.frame(job_title = job_title_dat)
+job_title_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
+n_job_title = dim(job_title_dat)[1]
+job_title_dat = job_title_dat%>% group_by(state) %>% count(job_title)
 
-job_title_dat = data.frame(freq(job_title_dat$job_title))
-## Get rid of total change to 4 later
-job_title_dat = job_title_dat[-4,]
-job_title_dat$var_names = c("Client Facing", "Client Facing Medical Provider", "Non Client Facing")
-job_title_dat$Percent = round(job_title_dat$Percent,0)
-job_title_dat$Percent = paste0(job_title_dat$Percent, "%")
+job_title_dat$job_title = recode(job_title_dat$job_title, "1" = "Client Facing", "2" = "Client Facing Medical Provider","3" = "Non Client Facing")
+job_title_dat$percent = job_title_dat$n / n_job_title
+job_title_dat$percent = round(job_title_dat$percent, 2)*100
+job_title_dat$percent = paste0(job_title_dat$percent, "%")
 title_job_title = paste0("What work group are you in?", " ", "n=", n_job_title)
-plot_job_title = ggplot(job_title_dat, aes(x = var_names,y =Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_job_title, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_survey))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = job_title_dat$Percent, vjust = -.5)
-plot_job_title
 
+plot_job_title = ggplot(job_title_dat, aes(x = job_title,y =n, fill = state))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_job_title, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,600))+
+  geom_text(aes(label = job_title_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)
+plot_job_title
 
 ```
 ### Run this each time need n_why for later
-
+## Fix this not recoding correctly
 Graph of situation
 1, I am working from home | 2, I am working from a Centerstone office | 3, I am working both from home some days and at a Centerstone office some days | 4, I am not working at all (On Leave or Cannot Work From Home or Office)
 ```{r echo=FALSE}
-situation_dat = na.omit(tech_cri_dat_complete$situation)
-situation_dat = data.frame(situation = situation_dat)
-n_situation_dat = dim(situation_dat)[1]
-situation_dat = data.frame(freq(situation_dat$situation))
-## Get rid of total change to 5 later
-situation_dat = situation_dat[-5,]
-situation_dat$var_names = c("Working from home", "Centerstone office", "Working from home and Centerstone office", "Not working")
-
-situation_dat$var_names = factor(situation_dat$var_names, levels = c("Working from home", "Centerstone office", "Working from home and \n Centerstone office", "Not working"))
-situation_dat$Percent = paste0(round(situation_dat$Percent,0), "%") 
-### Need this for later
-n_why = situation_dat
-write.csv(n_why, "n_why.csv", row.names = FALSE)
-n_why = read.csv("n_why.csv", header = TRUE)
-n_why
-#####
-title_situation = paste0("Please choose the option that best describes your situation.", " ", "n=", n_situation_dat)
-plot_situation = ggplot(situation_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
+#############################
+situation_dat = na.omit(data.frame(situation = tech_cri_dat_complete$situation, state = tech_cri_dat_complete$state))
+n_situation = dim(situation_dat)[1]
+situation_dat = situation_dat%>% group_by(state) %>% count(situation)
+situation_dat
+situation_dat$situation = recode(situation_dat$situation, "1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working")
+situation_dat$percent = situation_dat$n / n_situation
+situation_dat$percent = round(situation_dat$percent, 2)*100
+situation_dat$percent = paste0(situation_dat$percent, "%")
+title_situation = paste0("Please choose the option that best describes your situation.", " ", "n=", n_situation)
+plot_situation = ggplot(situation_dat, aes(x = situation,y =n, fill = state))+
+  geom_bar(stat = "identity", position = "dodge2")+
   labs(title=title_situation, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_survey))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = situation_dat$Percent, vjust = -.5)
+  scale_y_continuous(limits = c(0,600))+
+  geom_text(aes(label = situation_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)
 plot_situation
 
 
@@ -110,27 +103,27 @@ Home productivity
 4, My workspace is not ideal (lacks space, lacks privacy, inadequate furnishing) 
 5, Other
 ```{r echo=FALSE}
-home_productive =  tech_cri_dat_complete[,6:10]
-home_productive = apply(home_productive, 2, sum)
+home_productive_dat = na.omit(data.frame(tech_cri_dat_complete[,6:10], state = tech_cri_dat_complete$state))
+home_productive_dat = reshape(home_productive_dat, varying = list(c("home_productivity___1", "home_productivity___2", "home_productivity___3", "home_productivity___4", "home_productivity___5")), times = c(1:5), direction = "long")
+colnames(home_productive_dat)[2:3] = c("type_productive", "home_productive")
+home_productive_dat$type_productive = as.factor(home_productive_dat$type_productive)
+home_productive_dat = home_productive_dat%>% group_by(state, type_productive) %>% count(home_productive)
+home_productive_dat = subset(home_productive_dat, home_productive == 1)
+home_productive_dat$home_productive = NULL
 
-home_productive = data.frame(home_productive)
-## Divide by number of people working from home
-home_productive$percent = home_productive$home_productive / n_why[1,1]
+home_productive_dat$type_productive = recode(home_productive_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I have poor internet/connection","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "Other")
+home_productive_dat$percent = home_productive_dat$n / n_why[1,1]
+home_productive_dat$percent = round(home_productive_dat$percent, 2)*100
 
-response_options =  c("I have no barriers and am working productively", "I have poor internet/connection", "I lack enabling technology equipment", "My workspace is not ideal", "Other")
-home_productive = data.frame(response_options, home_productive)
-rownames(home_productive) = NULL
-colnames(home_productive)[2] = "count"
-home_productive$percent = round(home_productive$percent,2)
-home_productive$percent = paste0(home_productive$percent*100, "%")
-home_productive = home_productive[order(home_productive$count,decreasing = TRUE),]
+home_productive_dat = home_productive_dat[order(home_productive_dat$state),]
+home_productive_dat
 
+home_productive_dat
 title_home_productive = paste0("What barriers do you have to working from home at full productivity?", " ", "n=", n_why[1,1])
 table_home_productive = 
-  gt(home_productive) %>%
+  gt(home_productive_dat) %>%
   tab_header(title = title_home_productive)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
 table_home_productive
 
 gtsave(table_home_productive, "table_home_productive.png")
@@ -145,8 +138,6 @@ write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
 other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
 other_barriers = other_barriers_home_complete_dat[,2:5]
-theme_1 = describe.factor(other_barriers$Theme.1)
-theme_1 = data.frame(theme_1)
 ### Stack all the themes and keep the original n for the percentage what about state
 ### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
@@ -164,8 +155,6 @@ other_barriers_long_complete_results
 other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
-other_barriers_long_complete_results$percent
-gt(other_barriers_long_complete_results)
 title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
 table_other_barriers_home = 
   gt(other_barriers_long_complete_results) %>%
@@ -240,7 +229,9 @@ gtsave(table_barriers_office, "table_barriers_office.png")
 other_barriers_office
 Please describe the barriers.
 Code later
+Must be greater than 100 to code
 ```{r echo=FALSE}
+length(tech_cri_dat_complete$other_barriers_office)-sum(is.na(tech_cri_dat_complete$other_barriers_office))
 
 ```
 
@@ -307,6 +298,7 @@ Please describe the other barriers.
 Code later
 ```{r echo=FALSE}
 
+length(tech_cri_dat_complete$other_barriers_office_home)-sum(is.na(tech_cri_dat_complete$other_barriers_office_home))
 ```
 
 #############
@@ -439,9 +431,43 @@ gtsave(table_barriers_zoom_use, "table_barriers_zoom_use.png")
 ```
 other_zoom_barriers_use
 Please list the other barrier(s).
-Code later
-```{r}
+Code this one
 
+Cat 
+```{r}
+length(tech_cri_dat_complete$other_zoom_barriers_use) - sum(is.na(tech_cri_dat_complete$other_zoom_barriers_use))
+other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
+length(barriers_home_complete)
+write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
+### other_barriers_home_complete
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_barriers_home_complete_dat[,2:5]
+### Stack all the themes and keep the original n for the percentage what about state
+### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
+n_other_barriers = dim(other_barriers)[1]
+other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
+other_barriers_long_complete = na.omit(other_barriers_long)
+other_barriers_long_complete
+other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
+other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
+other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent,2)*100
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state, -other_barriers_long_complete_results$percent),]
+
+other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
+other_barriers_long_complete_results
+#1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
+#describe.factor(other_barriers_long_complete_results$state)
+colnames(other_barriers_long_complete_results)[2] = "Theme"
+title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
+table_other_barriers_home = 
+  gt(other_barriers_long_complete_results) %>%
+  tab_header(title = title_other_barriers)%>%
+  tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
+table_other_barriers_home
+
+gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 ```
 
 facilitate_zoom
@@ -473,8 +499,8 @@ gtsave(table_facilitate_zoom, "table_facilitate_zoom.png")
 
 ```
 other_facilitate_zoom
-Lower than 10% not going to code it 
 ```{r}
+length(tech_cri_dat_complete$other_facilitate_zoom) - sum(is.na(tech_cri_dat_complete$other_facilitate_zoom))
 
 ```
 
@@ -513,9 +539,41 @@ gtsave(table_barriers_snap_md, "table_barriers_snap_md.png")
 
 other_snap_barriers
 Other barriers not listed above
-code later
+Jess
 ```{r}
+length(tech_cri_dat_complete$other_snap_barriers) - sum(is.na(tech_cri_dat_complete$other_snap_barriers))
+other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
+length(barriers_home_complete)
+write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
+### other_barriers_home_complete
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_barriers_home_complete_dat[,2:5]
+### Stack all the themes and keep the original n for the percentage what about state
+### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
+n_other_barriers = dim(other_barriers)[1]
+other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
+other_barriers_long_complete = na.omit(other_barriers_long)
+other_barriers_long_complete
+other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
+other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
+other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent,2)*100
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state, -other_barriers_long_complete_results$percent),]
 
+other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
+other_barriers_long_complete_results
+#1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
+#describe.factor(other_barriers_long_complete_results$state)
+colnames(other_barriers_long_complete_results)[2] = "Theme"
+title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
+table_other_barriers_home = 
+  gt(other_barriers_long_complete_results) %>%
+  tab_header(title = title_other_barriers)%>%
+  tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
+table_other_barriers_home
+
+gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 ```
 
 
@@ -553,6 +611,7 @@ other_zoom_barriers
 Please list the other barrier(s).
 Code later
 ```{r}
+length(tech_cri_dat_complete$other_zoom_barriers) - sum(is.na(tech_cri_dat_complete$other_zoom_barriers))
 
 ```
 
@@ -952,3 +1011,9 @@ other_job_title
 head(tech_cri_dat_complete[,159],15)
 
 ```
+
+
+
+
+
+
