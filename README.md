@@ -104,30 +104,44 @@ Home productivity
 5, Other
 ```{r echo=FALSE}
 home_productive_dat = na.omit(data.frame(tech_cri_dat_complete[,6:10], state = tech_cri_dat_complete$state))
-home_productive_dat = reshape(home_productive_dat, varying = list(c("home_productivity___1", "home_productivity___2", "home_productivity___3", "home_productivity___4", "home_productivity___5")), times = c(1:5), direction = "long")
+home_productive_dat
+n_state = describe.factor(home_productive_dat$state, decr.order = FALSE)
+n_state = data.frame(n_state)
+n_state = n_state[1,]
+n_state
+home_productive_dat = reshape(home_productive_dat, varying = list(c("home_productivity___1", "home_productivity___2", "home_productivity___3", "home_productivity___4", "home_productivity___5")), times = c(1,2,3,4,5), direction = "long")
+home_productive_dat
+
+
 colnames(home_productive_dat)[2:3] = c("type_productive", "home_productive")
 home_productive_dat$type_productive = as.factor(home_productive_dat$type_productive)
-home_productive_dat = home_productive_dat%>% group_by(state, type_productive) %>% count(home_productive)
+
+home_productive_dat = home_productive_dat%>% group_by(state, type_productive) %>% 
+  count(home_productive)
+home_productive_dat
+
 home_productive_dat = subset(home_productive_dat, home_productive == 1)
 home_productive_dat$home_productive = NULL
-
-home_productive_dat$type_productive = recode(home_productive_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I have poor internet/connection","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "Other")
-home_productive_dat$percent = home_productive_dat$n / n_why[1,1]
+home_productive_dat
+home_productive_dat$percent = ifelse(home_productive_dat$state == "Indiana", home_productive_dat$n / n_state$Indiana, ifelse(home_productive_dat$state == "Tennessee", home_productive_dat$n / n_state$Tennessee, ifelse(home_productive_dat$state == "Illinois", home_productive_dat$n / n_state$Illinois, ifelse(home_productive_dat$state == "Florida", home_productive_dat$n / n_state$Florida, home_productive_dat$n / n_state$Another.state))))
 home_productive_dat$percent = round(home_productive_dat$percent, 2)*100
-
-home_productive_dat = home_productive_dat[order(home_productive_dat$state),]
+home_productive_dat$percent = paste0(home_productive_dat$percent, "%")
+home_productive_dat$type_productive = recode(home_productive_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I have poor internet/connection","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "Other")
 home_productive_dat
 
+home_productive_dat$state = ifelse(home_productive_dat$state == "Indiana", paste0(home_productive_dat$state, " ", "n=", n_state$Indiana) , ifelse(home_productive_dat$state == "Tennessee", paste0(home_productive_dat$state, " ", "n=", n_state$Tennessee), ifelse(home_productive_dat$state == "Illinois", paste0(home_productive_dat$state, " ", "n=", n_state$Illinois), ifelse(home_productive_dat$state == "Florida", paste0(home_productive_dat$state, " ", "n=", n_state$Florida), paste0(home_productive_dat$state, " ", "n=", n_state$Another.state)))))
 home_productive_dat
-title_home_productive = paste0("What barriers do you have to working from home at full productivity?", " ", "n=", n_why[1,1])
+title_home_productive = paste0("What barriers do you have to working from home at full productivity?")
+
+home_productive_dat = home_productive_dat%>% group_by(state)
+
 table_home_productive = 
   gt(home_productive_dat) %>%
   tab_header(title = title_home_productive)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap and did not have missing data in any of the response options for each state.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
 table_home_productive
-
 gtsave(table_home_productive, "table_home_productive.png")
-
 ```
 Qualitative other barriers at home code later
 ```{r echo=FALSE}
@@ -171,28 +185,80 @@ n_why[2,1]
 I am working in the office because: 
 1, My job is essential and cannot be performed remotely | 2, I have poor internet/connection at home | 3, I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone) | 4, My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing) | 5, I am choosing (with leadership permission) to continue to work in the office
 ```{r echo=FALSE}
-office_why = tech_cri_dat_complete[,12:16]
-#office_why = apply(office_why, 2, as.factor)
-office_why = apply(office_why, 2, sum)
-office_why = data.frame(office_why)
-office_why$percent = office_why$office_why / n_why[2,1]
-response_options =  c("My job is essential and cannot be performed remotely", "I have poor internet/connection at home", "I lack enabling technology equipment at home", "My workspace is not ideal at home", "I am choosing (with leadership permission) to continue to work in the office")
-office_why = data.frame(response_options, office_why)
-rownames(office_why) = NULL
-colnames(office_why)[2] = "count"
-office_why$percent = round(office_why$percent,2)
-office_why$percent = paste0(office_why$percent*100, "%")
-office_why = office_why[order(office_why$count,decreasing = TRUE),]
+
+office_why_dat = na.omit(data.frame(tech_cri_dat_complete[,12:16], state = tech_cri_dat_complete$state))
+office_why_dat
+n_state = describe.factor(office_why_dat$state, decr.order = FALSE)
+n_state = data.frame(n_state)
+n_state = n_state[1,]
+n_state
+office_why_dat = reshape(office_why_dat, varying = list(c("office_why___1", "office_why___2", "office_why___3", "office_why___4", "office_why___5")), times = c(1,2,3,4,5), direction = "long")
+office_why_dat
+
+
+colnames(office_why_dat)[2:3] = c("type_productive", "office_why")
+office_why_dat$type_productive = as.factor(office_why_dat$type_productive)
+
+office_why_dat = office_why_dat%>% group_by(state, type_productive) %>% 
+  count(office_why)
+office_why_dat
+
+office_why_dat = subset(office_why_dat, office_why == 1)
+office_why_dat$office_why = NULL
+office_why_dat
+n_state = rep(unlist(n_state), each = 5)
+office_why_dat$n_state = n_state
+office_why_dat$percent = round(office_why_dat$n / office_why_dat$n_state,2)*100
+office_why_dat$percent = paste0(office_why_dat$percent, "%")
+office_why_dat$type_productive = recode(office_why_dat$type_productive, "1"= "My job is essential and cannot be performed remotely","2"= "I have poor internet/connection at home ","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "I am choosing (with leadership permission) to continue to work in the office")
+
+
+title_office_why = paste0("What barriers do you have to working from home at full productivity?")
+
+office_why_dat = office_why_dat%>% group_by(state)
+
+table_office_why = 
+  gt(office_why_dat) %>%
+  tab_header(title = title_office_why)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap and did not have missing data in any of the response options",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"), n_state = md("N per state"))
+table_office_why
+gtsave(table_office_why, "table_office_why.png")
+
+#########################################################################
+
+office_why_dat = na.omit(data.frame(tech_cri_dat_complete[,12:16], state = tech_cri_dat_complete$state))
+
+office_why_dat = reshape(office_why_dat, varying = list(c("office_why___1", "office_why___2", "office_why___3", "office_why___4", "office_why___5")), times = c(1:5), direction = "long")
+colnames(office_why_dat)[2:3] = c("type_productive", "office_why")
+office_why_dat$type_productive = as.factor(office_why_dat$type_productive)
+office_why_dat = office_why_dat%>% group_by(state, type_productive) %>% count(office_why)
+office_why_dat = subset(office_why_dat, office_why == 1)
+office_why_dat$office_why = NULL
+
+office_why_dat$type_productive = recode(office_why_dat$type_productive, "1"= "My job is essential and cannot be performed remotely","2"= "I have poor internet/connection at home ","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "I am choosing (with leadership permission) to continue to work in the office")
+
+office_why_dat$percent = office_why_dat$n / n_why[2,1]
+office_why_dat$percent = round(office_why_dat$percent, 2)*100
+office_why_dat$percent = paste0(office_why_dat$percent, "%")
 
 
 title_office_why = paste0("I am working in the office because:", " ", "n=", n_why[2,1])
+
+
+write.csv(office_why_dat, "office_why_dat.csv", row.names = FALSE)
+office_why_dat = read.csv("office_why_dat.csv", header = TRUE)
+office_why_dat = office_why_dat%>% group_by(state)
+
 table_office_why = 
-  gt(office_why) %>%
+  gt(office_why_dat) %>%
   tab_header(title = title_office_why)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
 table_office_why
 gtsave(table_office_why, "table_office_why.png")
+
+
+
 
 
 ```
