@@ -34,7 +34,7 @@ dim(tech_cri_dat)
 describe.factor(tech_cri_dat_complete$state)
 tech_cri_dat_complete$state = ifelse(tech_cri_dat_complete$state == 1, "Indiana", ifelse(tech_cri_dat_complete$state == 2, "Florida", ifelse(tech_cri_dat_complete$state == 3, "Tennessee", ifelse(tech_cri_dat_complete$state == 4, "Illinois", ifelse(tech_cri_dat_complete$state == 5, "Another state", "Wrong")))))
 tech_cri_dat_complete$state = as.factor(tech_cri_dat_complete$state)
-tech_cri_dat_complete$state = factor(tech_cri_dat_complete$state, levels = c("Indiana", "Tennessee", "Illinois", "Florida", "Another state"))
+tech_cri_dat_complete$state = factor(tech_cri_dat_complete$state, levels = c("Tennessee", "Indiana", "Illinois", "Florida", "Another state"))
 describe.factor(tech_cri_dat_complete$state)
 
 ### Clinician survey data 
@@ -55,25 +55,38 @@ n_zoom = ifelse(clincian_survey_dat$service_provided___2 == 1,1, ifelse(clincian
 n_zoom = sum(n_zoom)
 
 ```
-
-
 Get complete n and graphs for job title and situation 
 ```{r echo=FALSE}
 job_title_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
 n_job_title = dim(job_title_dat)[1]
-job_title_dat = job_title_dat%>% group_by(state) %>% count(job_title)
+
+n_state_job_title = describe.factor(job_title_dat$state, decr.order = FALSE)
+n_state_job_title = data.frame(n_state_job_title)
+n_state_job_title = n_state_job_title[1,]
+n_state_job_title
 
 job_title_dat$job_title = recode(job_title_dat$job_title, "1" = "Client Facing", "2" = "Client Facing Medical Provider","3" = "Non Client Facing")
-job_title_dat$percent = job_title_dat$n / n_job_title
+job_title_dat = job_title_dat%>% group_by(state) %>% count(job_title)
+
+job_title_dat$percent = ifelse(job_title_dat$state == "Indiana", job_title_dat$n / n_state_job_title$Indiana, ifelse(job_title_dat$state == "Tennessee", job_title_dat$n / n_state_job_title$Tennessee, ifelse(job_title_dat$state == "Illinois", job_title_dat$n / n_state_job_title$Illinois, ifelse(job_title_dat$state == "Florida", job_title_dat$n / n_state_job_title$Florida, job_title_dat$n / n_state_job_title$Another.state))))
+
+job_title_dat$state = ifelse(job_title_dat$state == "Indiana", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Indiana) , ifelse(job_title_dat$state == "Tennessee", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Tennessee), ifelse(job_title_dat$state == "Illinois", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Illinois), ifelse(job_title_dat$state == "Florida", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Florida), paste0(job_title_dat$state, " ", "n=", n_state_job_title$Another.state)))))
+
+job_title_dat$state = as.factor(job_title_dat$state)
+
+job_title_dat$state = factor(job_title_dat$state, levels = levels(job_title_dat$state)[5:1])
+
 job_title_dat$percent = round(job_title_dat$percent, 2)*100
 job_title_dat$percent = paste0(job_title_dat$percent, "%")
 title_job_title = paste0("What work group are you in?", " ", "n=", n_job_title)
 
+
 plot_job_title = ggplot(job_title_dat, aes(x = job_title,y =n, fill = state))+
   geom_bar(stat = "identity", position = "dodge2")+
   labs(title=title_job_title, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,600))+
-  geom_text(aes(label = job_title_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)
+  scale_y_continuous(limits = c(0,700))+
+  geom_text(aes(label = job_title_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  labs(fill = "State")
 plot_job_title
 
 ```
@@ -85,20 +98,34 @@ Graph of situation
 #############################
 situation_dat = na.omit(data.frame(situation = tech_cri_dat_complete$situation, state = tech_cri_dat_complete$state))
 n_situation = dim(situation_dat)[1]
+
+n_state_situation = describe.factor(situation_dat$state, decr.order = FALSE)
+n_state_situation = data.frame(n_state_situation)
+n_state_situation = n_state_situation[1,]
+n_state_situation
+
 situation_dat = situation_dat%>% group_by(state) %>% count(situation)
-situation_dat
-situation_dat$situation = recode(situation_dat$situation, "1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working")
-situation_dat$percent = situation_dat$n / n_situation
+
+situation_dat$percent = ifelse(situation_dat$state == "Indiana", situation_dat$n / n_state_situation$Indiana, ifelse(situation_dat$state == "Tennessee", situation_dat$n / n_state_situation$Tennessee, ifelse(situation_dat$state == "Illinois", situation_dat$n / n_state_situation$Illinois, ifelse(situation_dat$state == "Florida", situation_dat$n / n_state_situation$Florida, situation_dat$n / n_state_situation$Another.state))))
+
+situation_dat$state = ifelse(situation_dat$state == "Indiana", paste0(situation_dat$state, " ", "n=", n_state_situation$Indiana) , ifelse(situation_dat$state == "Tennessee", paste0(situation_dat$state, " ", "n=", n_state_situation$Tennessee), ifelse(situation_dat$state == "Illinois", paste0(situation_dat$state, " ", "n=", n_state_situation$Illinois), ifelse(situation_dat$state == "Florida", paste0(situation_dat$state, " ", "n=", n_state_situation$Florida), paste0(situation_dat$state, " ", "n=", n_state_situation$Another.state)))))
+
+situation_dat$state = as.factor(situation_dat$state)
+
+situation_dat$state = factor(situation_dat$state, levels = levels(situation_dat$state)[5:1])
+
 situation_dat$percent = round(situation_dat$percent, 2)*100
 situation_dat$percent = paste0(situation_dat$percent, "%")
+situation_dat$situation = recode(situation_dat$situation, "1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working")
+
 title_situation = paste0("Please choose the option that best describes your situation.", " ", "n=", n_situation)
 plot_situation = ggplot(situation_dat, aes(x = situation,y =n, fill = state))+
   geom_bar(stat = "identity", position = "dodge2")+
   labs(title=title_situation, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,600))+
-  geom_text(aes(label = situation_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)
+  scale_y_continuous(limits = c(0,700))+
+  geom_text(aes(label = situation_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  labs(fill = "State")
 plot_situation
-180+90
 
 ```
 Home productivity
@@ -158,12 +185,18 @@ gtsave(table_home_productive, "table_home_productive.png")
 Qualitative other barriers at home code later
 ```{r echo=FALSE}
 other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
-length(barriers_home_complete)
 write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
 ### other_barriers_home_complete
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
 other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
 other_barriers = other_barriers_home_complete_dat[,2:5]
+
+n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
+n_state_other_barriers = data.frame(n_state_other_barriers)
+n_state_other_barriers = n_state_other_barriers[1,]
+
+colnames(n_state_other_barriers) = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
+
 ### Stack all the themes and keep the original n for the percentage what about state
 ### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
@@ -171,23 +204,33 @@ other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme
 other_barriers_long_complete = na.omit(other_barriers_long)
 other_barriers_long_complete
 other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
-other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
-other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent,2)*100
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state, -other_barriers_long_complete_results$percent),]
-
-other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
 other_barriers_long_complete_results
+
+other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == 1, other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == 3, other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == 4, other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == 2, other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$`Another state`))))
+
+
+other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
+other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
+
+
 #1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
+
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$`Another state`)))))
+
+
+other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
+
+other_barriers_long_complete_results$state = factor(other_barriers_long_complete_results$state, levels = levels(other_barriers_long_complete_results$state)[5:1])
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
-title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
+title_other_barriers = paste0("Other barriers to working from home")
 table_other_barriers_home = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
 table_other_barriers_home
-
 gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 ```
 office_why
@@ -342,7 +385,7 @@ office_home_why_dat = office_home_why_dat%>% group_by(state)
 table_office_home_why = 
   gt(office_home_why_dat) %>%
   tab_header(title = title_office_home_why)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office some days.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
   cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
 table_office_home_why
 gtsave(table_office_home_why, "table_office_home_why.png")
@@ -384,14 +427,14 @@ barriers_office_home_dat
 
 barriers_office_home_dat$state = ifelse(barriers_office_home_dat$state == "Indiana", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Indiana) , ifelse(barriers_office_home_dat$state == "Tennessee", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Tennessee), ifelse(barriers_office_home_dat$state == "Illinois", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Illinois), ifelse(barriers_office_home_dat$state == "Florida", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Florida), paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Another.state)))))
 barriers_office_home_dat
-title_barriers_office_home = paste0("What barriers if any do you have working in the office?")
+title_barriers_office_home = paste0("What barriers if any do you have working in the office some days?")
 
 barriers_office_home_dat = barriers_office_home_dat%>% group_by(state)
 
 table_barriers_office_home = 
   gt(barriers_office_home_dat) %>%
   tab_header(title = title_barriers_office_home)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office some days.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
   cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
 table_barriers_office_home
 gtsave(table_barriers_office_home, "table_barriers_office_home.png")
