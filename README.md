@@ -914,7 +914,7 @@ title_comfort_televideo_dat = paste0("What is your level of comfort with televid
 plot_comfort_televideo = ggplot(comfort_televideo_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_comfort_televideo_dat, x ="Response option", y = "Count")+
-  scale_y_continuous(limits = c(0,n_comfort_televideo_dat))+
+  scale_y_continuous(limits = c(0,600))+
   theme(legend.position = "none")+
   geom_text_repel(label = comfort_televideo_dat$Percent, vjust = -.5)
 plot_comfort_televideo
@@ -945,7 +945,7 @@ title_interest_working_home_dat = paste0("What is your level of interest in prov
 plot_interest_working_home = ggplot(interest_working_home_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_interest_working_home_dat, x ="Response option", y = "Count")+
-  scale_y_continuous(limits = c(0,n_interest_working_home_dat))+
+  scale_y_continuous(limits = c(0,600))+
   theme(legend.position = "none")+
   geom_text_repel(label = interest_working_home_dat$Percent, vjust = -.5)
 plot_interest_working_home
@@ -1016,7 +1016,7 @@ title_ideal_features = paste0("Please select the features you would like to see 
 table_ideal_features = 
   gt(ideal_features) %>%
   tab_header(title = title_ideal_features)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  Only respondents who selected at least televideo and are client facing.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  Only respondents who selected at least televideo.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_ideal_features
 
@@ -1055,7 +1055,7 @@ title_ideal_features_no = paste0("Would any of these features increase your pref
 table_ideal_features_no = 
   gt(ideal_features_no) %>%
   tab_header(title = title_ideal_features_no)%>%
-  tab_footnote(footnote = "Respondants can select all that apply so count / percent can add up to more than total n / 100%. Only respondents who did not select televideo and are client facing." ,  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondants can select all that apply so count / percent can add up to more than total n / 100%. Only respondents who did not select televideo." ,  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_ideal_features_no
 
@@ -1142,7 +1142,7 @@ title_state = paste0("Which state do you currently live in?", " ", "n=", n_state
 plot_state = ggplot(state_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_state, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_state_dat))+
+  scale_y_continuous(limits = c(0,1000))+
   theme(legend.position = "none")+
   geom_text_repel(label = state_dat$Percent, vjust = -.5)
 plot_state
@@ -1166,7 +1166,7 @@ title_age = paste0("What is your age?", " ", "n=", n_age_dat)
 plot_age = ggplot(age_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_age, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_age_dat))+
+  scale_y_continuous(limits = c(0,1000))+
   theme(legend.position = "none")+
   geom_text_repel(label = age_dat$Percent, vjust = -.5)
 plot_age
@@ -1242,7 +1242,7 @@ title_job_title_extend = paste0("Which option best describes your job title?", "
 plot_job_title_extend = ggplot(job_title_extend_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_job_title_extend, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_job_title_extend_dat))+
+  scale_y_continuous(limits = c(0,1000))+
   theme(legend.position = "none")+
   geom_text_repel(label = job_title_extend_dat$Percent, vjust = -.5)
 plot_job_title_extend
