@@ -11,13 +11,15 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-12_1032.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-14_0823.csv", header = TRUE, na.strings = c(""))
 tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
 ```
 Check missingness, create data sets, and n's
 1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
+
+1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 ```{r echo=FALSE}
 library(naniar)
 library(descr)
@@ -29,9 +31,12 @@ miss_var_summary(tech_cri_dat_complete)
 dim(tech_cri_dat_complete)
 dim(tech_cri_dat)
 
+describe.factor(tech_cri_dat_complete$state)
 tech_cri_dat_complete$state = ifelse(tech_cri_dat_complete$state == 1, "Indiana", ifelse(tech_cri_dat_complete$state == 2, "Florida", ifelse(tech_cri_dat_complete$state == 3, "Tennessee", ifelse(tech_cri_dat_complete$state == 4, "Illinois", ifelse(tech_cri_dat_complete$state == 5, "Another state", "Wrong")))))
 tech_cri_dat_complete$state = as.factor(tech_cri_dat_complete$state)
 tech_cri_dat_complete$state = factor(tech_cri_dat_complete$state, levels = c("Indiana", "Tennessee", "Illinois", "Florida", "Another state"))
+describe.factor(tech_cri_dat_complete$state)
+
 ### Clinician survey data 
 clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
 clincian_survey_dat = subset(clincian_survey_dat, service_provided___6 != 1)
@@ -41,6 +46,7 @@ n_survey = dim(tech_cri_dat_complete)[1]
 n_survey
 
 ### For barriers and faciliators to Zoom and SnapMD need the number of people who used each.  This means selecting 
+#1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
 ### SnapMD
 n_snap_md = ifelse(clincian_survey_dat$service_provided___4 == 1,1, ifelse(clincian_survey_dat$service_provided___5 == 1, 1, 0))
 n_snap_md = sum(n_snap_md)
@@ -92,7 +98,7 @@ plot_situation = ggplot(situation_dat, aes(x = situation,y =n, fill = state))+
   scale_y_continuous(limits = c(0,600))+
   geom_text(aes(label = situation_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)
 plot_situation
-
+180+90
 
 ```
 Home productivity
@@ -533,13 +539,12 @@ Code this one
 Cat 
 ```{r}
 length(tech_cri_dat_complete$other_zoom_barriers_use) - sum(is.na(tech_cri_dat_complete$other_zoom_barriers_use))
-other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
-length(barriers_home_complete)
-write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
-### other_barriers_home_complete
+other_zoom_barriers_use_complete =  na.omit(data.frame(other_zoom_barriers_use = tech_cri_dat_complete$other_zoom_barriers_use, state = tech_cri_dat_complete$state))
+write.csv(other_zoom_barriers_use_complete, "other_zoom_barriers_use_complete.csv", row.names = FALSE)
+### other_zoom_barriers_use_complete
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_barriers_home_complete_dat[,2:5]
+other_zoom_barriers_use_complete_dat = read.csv("other_zoom_barriers_use_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_zoom_barriers_use_complete_dat[,2:5]
 ### Stack all the themes and keep the original n for the percentage what about state
 ### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
@@ -558,13 +563,14 @@ other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
 title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
-table_other_barriers_home = 
+table_other_zoom_barriers_use = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
   tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_barriers_home
+table_other_zoom_barriers_use
 
-gtsave(table_other_barriers_home, "table_other_barriers_home.png")
+gtsave(table_other_zoom_barriers_use, "table_other_zoom_barriers_use.png")
+
 ```
 
 facilitate_zoom
@@ -639,13 +645,17 @@ Other barriers not listed above
 Jess
 ```{r}
 length(tech_cri_dat_complete$other_snap_barriers) - sum(is.na(tech_cri_dat_complete$other_snap_barriers))
-other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
+
+other_snap_barriers_complete =  na.omit(data.frame(other_snap_barriers = tech_cri_dat_complete$other_snap_barriers, state = tech_cri_dat_complete$state))
+write.csv(other_snap_barriers_complete, "other_snap_barriers_complete.csv", row.names = FALSE)
+
+other_snap_barriers_complete =  na.omit(data.frame(other_snap_barriers = tech_cri_dat_complete$other_snap_barriers, state = tech_cri_dat_complete$state))
 length(barriers_home_complete)
-write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
-### other_barriers_home_complete
+write.csv(other_snap_barriers_complete, "other_snap_barriers_complete.csv", row.names = FALSE)
+### other_snap_barriers_complete
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_barriers_home_complete_dat[,2:5]
+other_snap_barriers_complete_dat = read.csv("other_snap_barriers_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_snap_barriers_complete_dat[,2:5]
 ### Stack all the themes and keep the original n for the percentage what about state
 ### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
@@ -664,13 +674,14 @@ other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
 title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
-table_other_barriers_home = 
+table_other_snap_barriers = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
   tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_barriers_home
+table_other_snap_barriers
 
-gtsave(table_other_barriers_home, "table_other_barriers_home.png")
+gtsave(table_other_snap_barriers, "table_other_snap_barriers.png")
+
 ```
 
 
