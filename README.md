@@ -51,9 +51,23 @@ n_survey
 n_snap_md = ifelse(clincian_survey_dat$service_provided___4 == 1,1, ifelse(clincian_survey_dat$service_provided___5 == 1, 1, 0))
 n_snap_md = sum(n_snap_md)
 ### Zoom
+
+
 n_zoom = ifelse(clincian_survey_dat$service_provided___2 == 1,1, ifelse(clincian_survey_dat$service_provided___3 == 1, 1, 0))
 n_zoom = sum(n_zoom)
 
+n_clinician_survey 
+#### Need if you did not select SnapMD
+n_no_snap_md = ifelse(clincian_survey_dat$service_provided___4 != 1 & clincian_survey_dat$service_provided___5 != 1, 1, 0)
+n_no_snap_md = sum(n_no_snap_md)
+
+### Check you are adding correctly 
+n_no_snap_md + n_snap_md == n_clinician_survey
+#### Need if you did not select Zoom
+n_no_zoom = ifelse(clincian_survey_dat$service_provided___2 != 1 & clincian_survey_dat$service_provided___3 != 1, 1, 0)
+n_no_zoom = sum(n_no_zoom)
+
+n_zoom+n_no_zoom == n_clinician_survey
 ```
 Get complete n and graphs for job title and situation 
 ```{r echo=FALSE}
@@ -460,7 +474,6 @@ Fine to have tech_cri_dat_complete instead of clincian_survey_dat, becuase if yo
 ```{r echo=FALSE}
 
 service_provided = tech_cri_dat_complete[,36:41]
-#service_provided = apply(service_provided, 2, as.factor)
 service_provided = apply(service_provided, 2, sum)
 service_provided = data.frame(service_provided)
 service_provided$percent = service_provided$service_provided / n_clinician_survey
@@ -509,7 +522,6 @@ table_barriers_snap_md_use =
   tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_snap_md_use
-
 gtsave(table_barriers_snap_md_use, "table_barriers_snap_md_use.png")
 
 ```
@@ -542,7 +554,6 @@ table_facilitate_snapmd =
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_facilitate_snapmd
 gtsave(table_facilitate_snapmd, "table_facilitate_snapmd.png")
-
 
 ```
 
@@ -588,6 +599,23 @@ write.csv(other_zoom_barriers_use_complete, "other_zoom_barriers_use_complete.cs
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
 other_zoom_barriers_use_complete_dat = read.csv("other_zoom_barriers_use_complete_dat.csv", header = TRUE, na.strings = "")
 other_barriers = other_zoom_barriers_use_complete_dat[,2:5]
+
+##############################################################
+# Replace the code below later
+##############################################################
+other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
+write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
+### other_barriers_home_complete
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_barriers_home_complete_dat[,2:5]
+
+n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
+n_state_other_barriers = data.frame(n_state_other_barriers)
+n_state_other_barriers = n_state_other_barriers[1,]
+
+colnames(n_state_other_barriers) = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
+
 ### Stack all the themes and keep the original n for the percentage what about state
 ### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
@@ -595,24 +623,34 @@ other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme
 other_barriers_long_complete = na.omit(other_barriers_long)
 other_barriers_long_complete
 other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
-other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
-other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent,2)*100
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state, -other_barriers_long_complete_results$percent),]
-
-other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
 other_barriers_long_complete_results
+
+other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == 1, other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == 3, other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == 4, other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == 2, other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$`Another state`))))
+
+
+other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
+other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
+
+
 #1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
+
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$`Another state`)))))
+
+
+other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
+
+other_barriers_long_complete_results$state = factor(other_barriers_long_complete_results$state, levels = levels(other_barriers_long_complete_results$state)[5:1])
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
-title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
-table_other_zoom_barriers_use = 
+title_other_barriers = paste0("Other barriers to working from home")
+table_other_barriers_home = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_zoom_barriers_use
-
-gtsave(table_other_zoom_barriers_use, "table_other_zoom_barriers_use.png")
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
+table_other_barriers_home
+gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 
 ```
 
@@ -620,7 +658,6 @@ facilitate_zoom
 We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.
 ```{r echo=FALSE}
 facilitate_zoom = tech_cri_dat_complete[,76:82]
-#facilitate_zoom = apply(facilitate_zoom, 2, as.factor)
 facilitate_zoom = apply(facilitate_zoom, 2, sum)
 facilitate_zoom = data.frame(facilitate_zoom)
 facilitate_zoom$percent = facilitate_zoom$facilitate_zoom / n_zoom
@@ -634,7 +671,7 @@ facilitate_zoom$percent = paste0(facilitate_zoom$percent*100, "%")
 
 facilitate_zoom = facilitate_zoom[order(facilitate_zoom$count,decreasing = TRUE),]
 
-title_facilitate_zoom = paste0("We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", sum(service_provided[c(1,3),2]))
+title_facilitate_zoom = paste0("We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", n_zoom)
 table_facilitate_zoom = 
   gt(facilitate_zoom) %>%
   tab_header(title = title_facilitate_zoom)%>%
@@ -642,7 +679,6 @@ table_facilitate_zoom =
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_facilitate_zoom
 gtsave(table_facilitate_zoom, "table_facilitate_zoom.png")
-
 ```
 other_facilitate_zoom
 ```{r}
@@ -655,11 +691,12 @@ Since you did not select SnapMD, we are wondering, what are the barriers to usin
 n = service_provided[c(1:3,6),2]
 Not SnapMD selected
 ```{r echo=FALSE}
-barriers_snap_md = tech_cri_dat_complete[,84:95]
-#barriers_snap_md = apply(barriers_snap_md, 2, as.factor)
+
+barriers_snap_md = subset(clincian_survey_dat, service_provided___4 == 0 & service_provided___5 == 0)
+barriers_snap_md = barriers_snap_md[,84:95]
 barriers_snap_md = apply(barriers_snap_md, 2, sum)
 barriers_snap_md = data.frame(barriers_snap_md)
-barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / n_snap_md
+barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / n_no_snap_md
 barriers_snap_md
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_snap_md = data.frame(response_options, barriers_snap_md)
@@ -670,11 +707,11 @@ barriers_snap_md$percent = paste0(barriers_snap_md$percent*100, "%")
 
 barriers_snap_md = barriers_snap_md[order(barriers_snap_md$count,decreasing = TRUE),]
 
-title_barriers_snap_md = paste0("Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)", " ", "n=", n_snap_md)
+title_barriers_snap_md = paste0("Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)", " ", "n=", n_no_snap_md)
 table_barriers_snap_md = 
   gt(barriers_snap_md) %>%
   tab_header(title = title_barriers_snap_md)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they did not use SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_snap_md
 
@@ -686,19 +723,48 @@ gtsave(table_barriers_snap_md, "table_barriers_snap_md.png")
 other_snap_barriers
 Other barriers not listed above
 Jess
+Correct Jess's codes
+Need to match what she did with the correct sample 
+```{r}
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+combine_correct_other_snap_barriers = read.csv("combine_correct_other_snap_barriers.csv", header = TRUE)
+combine_correct_other_snap_barriersdup =  duplicated(combine_correct_other_snap_barriers$other_snap_barriers)
+combine_correct_other_snap_barriers = subset(combine_correct_other_snap_barriers, dup == FALSE)
+write.csv(combine_correct_other_snap_barriers, "correct_snap_other_barriers.csv", row.names = FALSE)
+```
+
+
+
+Does not equal 369 likely, because some individuals selected the other option and did not choose to write anything therefore it was considered missing and deleted.
 ```{r}
 length(tech_cri_dat_complete$other_snap_barriers) - sum(is.na(tech_cri_dat_complete$other_snap_barriers))
 
-other_snap_barriers_complete =  na.omit(data.frame(other_snap_barriers = tech_cri_dat_complete$other_snap_barriers, state = tech_cri_dat_complete$state))
-write.csv(other_snap_barriers_complete, "other_snap_barriers_complete.csv", row.names = FALSE)
+other_barriers_snap_md = subset(clincian_survey_dat, service_provided___4 == 0 & service_provided___5 == 0)
+describe.factor(other_barriers_snap_md$state)
+other_snap_barriers_complete =  na.omit(data.frame(other_barriers_snap_md = other_barriers_snap_md$other_snap_barriers))
+head(other_snap_barriers_complete, 20)
+dim(other_snap_barriers_complete)
+write.csv(other_snap_barriers_complete, "other_snap_barriers_complete_correct.csv", row.names = FALSE)
 
-other_snap_barriers_complete =  na.omit(data.frame(other_snap_barriers = tech_cri_dat_complete$other_snap_barriers, state = tech_cri_dat_complete$state))
-length(barriers_home_complete)
-write.csv(other_snap_barriers_complete, "other_snap_barriers_complete.csv", row.names = FALSE)
 ### other_snap_barriers_complete
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
 other_snap_barriers_complete_dat = read.csv("other_snap_barriers_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_snap_barriers_complete_dat[,2:5]
+##############################################################
+# Replace the code below later
+##############################################################
+other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
+write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
+### other_barriers_home_complete
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_barriers_home_complete_dat[,2:5]
+
+n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
+n_state_other_barriers = data.frame(n_state_other_barriers)
+n_state_other_barriers = n_state_other_barriers[1,]
+
+colnames(n_state_other_barriers) = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
+
 ### Stack all the themes and keep the original n for the percentage what about state
 ### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
@@ -706,24 +772,34 @@ other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme
 other_barriers_long_complete = na.omit(other_barriers_long)
 other_barriers_long_complete
 other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
-other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
-other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent,2)*100
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state, -other_barriers_long_complete_results$percent),]
-
-other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
 other_barriers_long_complete_results
+
+other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == 1, other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == 3, other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == 4, other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == 2, other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$`Another state`))))
+
+
+other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
+other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
+
+
 #1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
+
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$`Another state`)))))
+
+
+other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
+
+other_barriers_long_complete_results$state = factor(other_barriers_long_complete_results$state, levels = levels(other_barriers_long_complete_results$state)[5:1])
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
-title_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_other_barriers)
-table_other_snap_barriers = 
+title_other_barriers = paste0("Other barriers to working from home")
+table_other_barriers_home = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Themes can overlap therefore count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_snap_barriers
-
-gtsave(table_other_snap_barriers, "table_other_snap_barriers.png")
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
+table_other_barriers_home
+gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 
 ```
 
@@ -731,12 +807,22 @@ gtsave(table_other_snap_barriers, "table_other_snap_barriers.png")
 
 barriers_zoom
 Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)
+### Messed up skip logic
+Need to subset for those who selected Zoom options
+1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
+
+
+
 ```{r echo=FALSE}
-barriers_zoom = tech_cri_dat_complete[,97:108]
-#barriers_zoom = apply(barriers_zoom, 2, as.factor)
+
+sum(tech_cri_dat_complete$barriers_zoom___3)
+barriers_zoom = subset(clincian_survey_dat, service_provided___2 == 0 & service_provided___3 == 0)
+dim(barriers_zoom)
+barriers_zoom = barriers_zoom[,97:108]
+
 barriers_zoom = apply(barriers_zoom, 2, sum)
 barriers_zoom = data.frame(barriers_zoom)
-barriers_zoom$percent = barriers_zoom$barriers_zoom / n_zoom
+barriers_zoom$percent = barriers_zoom$barriers_zoom / n_no_zoom
 barriers_zoom
 response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
 barriers_zoom = data.frame(response_options, barriers_zoom)
@@ -748,14 +834,13 @@ barriers_zoom$percent = paste0(barriers_zoom$percent*100, "%")
 
 barriers_zoom = barriers_zoom[order(barriers_zoom$count,decreasing = TRUE),]
 
-title_barriers_zoom = paste0("Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)", " ", "n=", n_zoom)
+title_barriers_zoom = paste0("Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)", " ", "n=", n_no_zoom)
 table_barriers_zoom = 
   gt(barriers_zoom) %>%
   tab_header(title = title_barriers_zoom)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they used Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they did not use Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_zoom
-
 gtsave(table_barriers_zoom, "table_barriers_zoom.png")
 ```
 other_zoom_barriers
@@ -810,8 +895,14 @@ comfort_televideo_dat = na.omit(clincian_survey_dat$comfort_televideo)
 comfort_televideo_dat = data.frame(comfort_televideo = comfort_televideo_dat)
 n_comfort_televideo_dat = dim(comfort_televideo_dat)[1]
 
+library(descr)
+library(installr)
+uninstall.packages("questionr")
+uninstall.packages("frequency")
+uninstall.packages("prettyR")
 comfort_televideo_dat = data.frame(freq(comfort_televideo_dat$comfort_televideo))
 ## Get rid of total
+
 comfort_televideo_dat = comfort_televideo_dat[-8,]
 var_names =  rownames(comfort_televideo_dat)
 comfort_televideo_dat$var_names = var_names
