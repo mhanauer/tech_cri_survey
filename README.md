@@ -19,6 +19,8 @@ tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "
 Check missingness, create data sets, and n's
 1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
 
+6, I do not provide televideo or teleaudio services not included in clincical data set.
+
 1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 ```{r echo=FALSE}
 library(naniar)
