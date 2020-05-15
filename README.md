@@ -1266,6 +1266,7 @@ plot_ess
 benefits
 Code later
 For you personally, what are the benefits of using televideo services relative to in-person services?
+Cat do first 200
 ```{r echo=FALSE}
 #head(clincian_survey_dat$benefits)
 
@@ -1275,6 +1276,7 @@ length(benefits_complete)
 barriers 
 Code later
 For you personally, what are the barriers of using televideo relative to in-person services?
+Jess do first 200
 ```{r echo=FALSE}
 #head(clincian_survey_dat$barriers)
 barriers_complete = na.omit(clincian_survey_dat$barriers)
