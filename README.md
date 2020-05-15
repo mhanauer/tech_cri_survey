@@ -27,6 +27,8 @@ library(gt)
 library(ggplot2)
 library(ggrepel)
 library(webshot)
+library(prettyR)
+library(dplyr)
 miss_var_summary(tech_cri_dat_complete)
 dim(tech_cri_dat_complete)
 dim(tech_cri_dat)
@@ -69,7 +71,7 @@ n_no_zoom = sum(n_no_zoom)
 
 n_zoom+n_no_zoom == n_clinician_survey
 ```
-Get complete n and graphs for job title and situation 
+Job title by state
 ```{r echo=FALSE}
 job_title_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
 n_job_title = dim(job_title_dat)[1]
@@ -104,6 +106,36 @@ plot_job_title = ggplot(job_title_dat, aes(x = job_title,y =n, fill = state))+
 plot_job_title
 
 ```
+Job title overall
+Keep state in the data so the N's are consistent above
+
+440+486+238+15	
+```{r}
+job_title_overall_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
+n_job_title_overall = dim(job_title_overall_dat)[1]
+
+
+
+job_title_overall_dat$job_title = recode(job_title_overall_dat$job_title, "1" = "Client Facing", "2" = "Client Facing Medical Provider","3" = "Non Client Facing")
+job_title_overall_dat = job_title_overall_dat %>% count(job_title)
+job_title_overall_dat$percent = as.numeric(job_title_overall_dat$n / n_job_title_overall)
+
+job_title_overall_dat$percent = round(job_title_overall_dat$percent, 2)*100
+job_title_overall_dat$percent = paste0(job_title_overall_dat$percent, "%")
+title_job_title_overall = paste0("What work group are you in?", " ", "n=", n_job_title_overall)
+
+
+plot_job_title_overall = ggplot(job_title_overall_dat, aes(x = job_title,y =n, fill = job_title))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_job_title_overall, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,2000))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+plot_job_title_overall
+
+```
+
+
 ### Run this each time need n_why for later
 ## Fix this not recoding correctly
 Graph of situation
@@ -142,6 +174,34 @@ plot_situation = ggplot(situation_dat, aes(x = situation,y =n, fill = state))+
 plot_situation
 
 ```
+Situation overall
+```{r}
+situation_overall_dat = na.omit(data.frame(situation = tech_cri_dat_complete$situation, state = tech_cri_dat_complete$state))
+n_situation_overall = dim(situation_overall_dat)[1]
+
+
+situation_overall_dat$situation = recode(situation_overall_dat$situation, "1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working")
+
+situation_overall_dat = situation_overall_dat %>% count(situation)
+situation_overall_dat$percent = as.numeric(situation_overall_dat$n / n_situation_overall)
+
+situation_overall_dat$percent = round(situation_overall_dat$percent, 2)*100
+situation_overall_dat$percent = paste0(situation_overall_dat$percent, "%")
+title_situation_overall = paste0("What work group are you in?", " ", "n=", n_situation_overall)
+
+
+plot_situation_overall = ggplot(situation_overall_dat, aes(x = situation,y =n, fill = situation))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_situation_overall, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,2000))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+plot_situation_overall
+
+
+```
+
+
 Home productivity
 
 1, I have no barriers and am working productively 
@@ -196,6 +256,51 @@ table_home_productive =
 table_home_productive
 gtsave(table_home_productive, "table_home_productive.png")
 ```
+Home productivity overall
+```{r}
+home_productive_overall_dat = subset(tech_cri_dat_complete, situation == 1)
+home_productive_overall_dat = na.omit(data.frame(home_productive_overall_dat[,6:10], state = home_productive_overall_dat$state))
+
+n_home_productive_overall_dat = dim(home_productive_overall_dat)[1]
+
+home_productive_overall_dat = reshape(home_productive_overall_dat, varying = list(c("home_productivity___1", "home_productivity___2", "home_productivity___3", "home_productivity___4", "home_productivity___5")), times = c(1,2,3,4,5), direction = "long")
+
+
+
+colnames(home_productive_overall_dat)[2:3] = c("type_productive", "home_productive_overall")
+home_productive_overall_dat$type_productive = as.factor(home_productive_overall_dat$type_productive)
+
+home_productive_overall_dat = home_productive_overall_dat%>% group_by(type_productive) %>% 
+  count(home_productive_overall)
+home_productive_overall_dat
+
+home_productive_overall_dat = subset(home_productive_overall_dat, home_productive_overall == 1)
+home_productive_overall_dat$home_productive_overall = NULL
+home_productive_overall_dat$percent = home_productive_overall_dat$n / n_home_productive_overall_dat
+
+
+home_productive_overall_dat$percent = round(home_productive_overall_dat$percent, 2)*100
+home_productive_overall_dat$percent = paste0(home_productive_overall_dat$percent, "%")
+home_productive_overall_dat$type_productive = recode(home_productive_overall_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I have poor internet/connection","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "Other")
+home_productive_overall_dat
+
+
+home_productive_overall_dat = home_productive_overall_dat %>% ungroup()
+
+
+title_home_productive_overall = paste0("What barriers do you have to working from home at full productivity?")
+
+table_home_productive_overall = 
+  gt(home_productive_overall_dat) %>%
+  tab_header(title = title_home_productive_overall)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options and stated they were working from home.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
+table_home_productive_overall
+gtsave(table_home_productive_overall, "table_home_productive_overall.png")
+
+```
+
+
 Qualitative other barriers at home code later
 ```{r echo=FALSE}
 other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
@@ -243,10 +348,58 @@ title_other_barriers = paste0("Other barriers to working from home")
 table_other_barriers_home = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1)) %>%
+  cols_label(n = md("N"), percent = md("Percent"))
 table_other_barriers_home
 gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 ```
+Other qualitative barriers overall
+```{r}
+other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
+write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
+### other_barriers_home_complete
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
+overall_other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
+
+overall_other_barriers = overall_other_barriers_home_complete_dat[,3:5]
+
+n_overall_other_barriers_overall = dim(overall_other_barriers)[1]
+overall_other_barriers_long = reshape(overall_other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
+overall_other_barriers_long_complete = na.omit(overall_other_barriers_long)
+overall_other_barriers_long_complete
+overall_other_barriers_long_complete_results = overall_other_barriers_long_complete %>% count(Theme.1)
+overall_other_barriers_long_complete_results
+
+overall_other_barriers_long_complete_results$percent = overall_other_barriers_long_complete_results$n / n_overall_other_barriers_overall
+
+overall_other_barriers_long_complete_results$percent = round(overall_other_barriers_long_complete_results$percent, 2)*100
+overall_other_barriers_long_complete_results$percent = paste0(overall_other_barriers_long_complete_results$percent, "%")
+
+colnames(overall_other_barriers_long_complete_results)[1:2] = c("Theme", "n")
+title_overall_other_barriers = paste0("Other barriers to working from home")
+
+overall_other_barriers_long_complete_results = overall_other_barriers_long_complete_results %>% ungroup()
+
+table_home_productive_overall = 
+  gt(home_productive_overall_dat) %>%
+  tab_header(title = title_home_productive_overall)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options and stated they were working from home.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
+table_home_productive_overall
+gtsave(table_home_productive_overall, "table_home_productive_overall.png")
+
+
+table_overall_other_barriers_home = 
+  gt(overall_other_barriers_long_complete_results) %>%
+  tab_header(title = title_overall_other_barriers)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected overall_other.",  locations = cells_body(columns = vars(Theme, n), rows = 1))
+table_overall_other_barriers_home
+gtsave(table_overall_other_barriers_home, "table_overall_other_barriers_home.png")
+
+```
+
+
+
 office_why
 I am working in the office because: 
 
@@ -1064,6 +1217,10 @@ gtsave(table_ideal_features_no, "table_ideal_features_no.png")
 ```
 other_ideal_features_nopref
 Code later
+```{r}
+
+```
+
 
 Emotional social support
 available_listen
@@ -1108,20 +1265,28 @@ plot_ess
 
 benefits
 Code later
+For you personally, what are the benefits of using televideo services relative to in-person services?
 ```{r echo=FALSE}
 #head(clincian_survey_dat$benefits)
 
+benefits_complete = na.omit(clincian_survey_dat$benefits)
+length(benefits_complete)
 ```
 barriers 
 Code later
+For you personally, what are the barriers of using televideo relative to in-person services?
 ```{r echo=FALSE}
 #head(clincian_survey_dat$barriers)
+barriers_complete = na.omit(clincian_survey_dat$barriers)
+length(barriers_complete)
 ```
 something_else
 code later
+Is there something else you would like us to know about challenges or successes you are encountering as a result of working in an altered work environment?
 ```{r echo=FALSE}
 #head(clincian_survey_dat$something_else, 15)
-
+something_else_complete = na.omit(clincian_survey_dat$something_else)
+length(something_else_complete)
 ```
 State
 1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
