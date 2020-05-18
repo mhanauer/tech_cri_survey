@@ -189,7 +189,7 @@ situation_overall_dat$percent = as.numeric(situation_overall_dat$n / n_situation
 situation_overall_dat$percent = round(situation_overall_dat$percent, 2)*100
 situation_overall_dat$percent = paste0(situation_overall_dat$percent, "%")
 title_situation_overall = paste0("What work group are you in?", " ", "n=", n_situation_overall)
-
+write.csv(situation_overall_dat, "situation_overall_dat.csv", row.names = FALSE)
 
 plot_situation_overall = ggplot(situation_overall_dat, aes(x = situation,y =n, fill = situation))+
   geom_bar(stat = "identity", position = "dodge2")+
@@ -846,6 +846,10 @@ gtsave(table_barriers_snap_md_use, "table_barriers_snap_md_use.png")
 other_snap_barriers_use
 Please list the other barrier(s).
 Code later
+```{r}
+
+```
+
 
 facilitate_snapmd
 We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.
@@ -894,6 +898,7 @@ colnames(barriers_zoom_use)[2] = "count"
 barriers_zoom_use$percent = round(barriers_zoom_use$percent,2)
 barriers_zoom_use$percent = paste0(barriers_zoom_use$percent*100, "%")
 barriers_zoom_use = barriers_zoom_use[order(barriers_zoom_use$count,decreasing = TRUE),]
+barriers_zoom_use
 
 title_barriers_zoom_use = paste0("We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.", " ", "n=", n_zoom)
 table_barriers_zoom_use = 
@@ -910,32 +915,16 @@ Code this one
 
 Cat 
 ```{r}
-length(tech_cri_dat_complete$other_zoom_barriers_use) - sum(is.na(tech_cri_dat_complete$other_zoom_barriers_use))
-other_zoom_barriers_use_complete =  na.omit(data.frame(other_zoom_barriers_use = tech_cri_dat_complete$other_zoom_barriers_use, state = tech_cri_dat_complete$state))
-write.csv(other_zoom_barriers_use_complete, "other_zoom_barriers_use_complete.csv", row.names = FALSE)
-### other_zoom_barriers_use_complete
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_zoom_barriers_use_complete_dat = read.csv("other_zoom_barriers_use_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_zoom_barriers_use_complete_dat[,2:5]
 
-##############################################################
-# Replace the code below later
-##############################################################
-other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
-write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
-### other_barriers_home_complete
+
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_barriers_home_complete_dat[,2:5]
+other_zoom_use_complete_dat = read.csv("other_zoom_barriers_use_complete_dat.csv", header = TRUE, na.strings = "")
+other_barriers = other_zoom_use_complete_dat[,2:5]
 
 n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
 n_state_other_barriers = data.frame(n_state_other_barriers)
 n_state_other_barriers = n_state_other_barriers[1,]
 
-colnames(n_state_other_barriers) = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
-
-### Stack all the themes and keep the original n for the percentage what about state
-### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
 n_other_barriers = dim(other_barriers)[1]
 other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
 other_barriers_long_complete = na.omit(other_barriers_long)
@@ -943,17 +932,14 @@ other_barriers_long_complete
 other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
 other_barriers_long_complete_results
 
-other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == 1, other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == 3, other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == 4, other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == 2, other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$`Another state`))))
+other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == "Indiana", other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == "Tennessee", other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == "Illinois", other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == "Florida", other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$Another.state))))
 
 
 other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
 other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
 
 
-#1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
-
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$`Another state`)))))
+other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Another.state)))))
 
 
 other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
@@ -962,14 +948,13 @@ other_barriers_long_complete_results$state = factor(other_barriers_long_complete
 other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
 #describe.factor(other_barriers_long_complete_results$state)
 colnames(other_barriers_long_complete_results)[2] = "Theme"
-title_other_barriers = paste0("Other barriers to working from home")
-table_other_barriers_home = 
+title_other_barriers = paste0("Other barriers to using Zoom")
+table_other_zoom_use = 
   gt(other_barriers_long_complete_results) %>%
   tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_barriers_home
-gtsave(table_other_barriers_home, "table_other_barriers_home.png")
-
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they used Zoom audio and or Zoom audio and video, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
+table_other_zoom_use
+gtsave(table_other_zoom_use, "table_other_zoom_use.png")
 ```
 
 facilitate_zoom
@@ -1051,22 +1036,8 @@ combine_correct_other_snap_barriers = subset(combine_correct_other_snap_barriers
 write.csv(combine_correct_other_snap_barriers, "correct_snap_other_barriers.csv", row.names = FALSE)
 ```
 
-
-
-Does not equal 369 likely, because some individuals selected the other option and did not choose to write anything therefore it was considered missing and deleted.
+Other barriers working from home
 ```{r}
-length(tech_cri_dat_complete$other_snap_barriers) - sum(is.na(tech_cri_dat_complete$other_snap_barriers))
-
-other_barriers_snap_md = subset(clincian_survey_dat, service_provided___4 == 0 & service_provided___5 == 0)
-describe.factor(other_barriers_snap_md$state)
-other_snap_barriers_complete =  na.omit(data.frame(other_barriers_snap_md = other_barriers_snap_md$other_snap_barriers))
-head(other_snap_barriers_complete, 20)
-dim(other_snap_barriers_complete)
-write.csv(other_snap_barriers_complete, "other_snap_barriers_complete_correct.csv", row.names = FALSE)
-
-### other_snap_barriers_complete
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_snap_barriers_complete_dat = read.csv("other_snap_barriers_complete_dat.csv", header = TRUE, na.strings = "")
 ##############################################################
 # Replace the code below later
 ##############################################################
@@ -1076,7 +1047,8 @@ write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
 other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
 other_barriers = other_barriers_home_complete_dat[,2:5]
-
+install.packages("prettyR")
+library(prettyR)
 n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
 n_state_other_barriers = data.frame(n_state_other_barriers)
 n_state_other_barriers = n_state_other_barriers[1,]
@@ -1120,7 +1092,7 @@ table_other_barriers_home
 gtsave(table_other_barriers_home, "table_other_barriers_home.png")
 
 ```
-
+other_home_barriers overall
 
 
 barriers_zoom
@@ -1183,6 +1155,7 @@ n_telehealth_sat_dat = dim(telehealth_sat_dat)[1]
 ## Subset 6, because you are a dumbass!!!!  6 = N/A
 telehealth_sat_dat = telehealth_sat_dat[,110:113]
 telehealth_sat_dat[telehealth_sat_dat == 6] = NA
+telehealth_sat_p = telehealth_sat_dat
 apply(telehealth_sat_dat, 2, range, na.rm = TRUE)
 telehealth_sat_dat = data.frame(telehealth_sat = telehealth_sat_dat)
 telehealth_sat_dat = apply(telehealth_sat_dat, 2, mean, na.rm = TRUE)
@@ -1200,9 +1173,17 @@ plot_telehealth_sat = ggplot(telehealth_sat_dat, aes(x = var_names,y = telehealt
   scale_y_continuous(limits = c(0,5))+
   labs(fill = "")
 plot_telehealth_sat
-
-telehealth_sat_dat$sat_percent = telehealth_sat_dat$telehealth_sat_dat / 5
-telehealth_sat_dat
+telehealth_sat_p = telehealth_sat_dat
+telehealth_sat_p = apply(telehealth_sat_p, 2, function(x){ifelse(x > 3,1,0)})
+telehealth_sat_p
+telehealth_sat_p = data.frame(telehealth_sat_p)
+telehealth_sat_p_complete = na.omit(telehealth_sat_p)
+n_telehealth_sat_p_complete  = dim(telehealth_sat_p_complete)[1]
+telehealth_sat_p_complete_n = apply(telehealth_sat_p_complete, 2, sum)
+telehealth_sat_p_complete_p = round(telehealth_sat_p_complete_n/n_telehealth_sat_p_complete,2)
+telehealth_sat_p_complete = rbind(telehealth_sat_p_complete_n, telehealth_sat_p_complete_p)
+rownames(telehealth_sat_p_complete) = c("n", "%")
+telehealth_sat_p_complete
 ```
 comfort_televideo
 What is your level of comfort with televideo?
@@ -1228,6 +1209,7 @@ var_names =  rownames(comfort_televideo_dat)
 comfort_televideo_dat$var_names = var_names
 typeof(comfort_televideo_dat$Frequency)
 comfort_televideo_dat$Percent = round(comfort_televideo_dat$Percent,0)
+greater_comfort = sum(comfort_televideo_dat$Percent[5:7])
 comfort_televideo_dat$Percent = paste0(comfort_televideo_dat$Percent, "%")
 title_comfort_televideo_dat = paste0("What is your level of comfort with televideo?", " ", "n=", n_comfort_televideo_dat)
 #comfort_televideo_dat$Frequency = paste0("n=",comfort_televideo_dat$Frequency)
@@ -1238,9 +1220,6 @@ plot_comfort_televideo = ggplot(comfort_televideo_dat, aes(x = var_names,y = Fre
   theme(legend.position = "none")+
   geom_text_repel(label = comfort_televideo_dat$Percent, vjust = -.5)
 plot_comfort_televideo
-comfort_televideo_dat
-greater_comfort = sum(comfort_televideo_dat$Percent[4:7])
-19+29+24
 greater_comfort
 ```
 increase_comfort
@@ -1264,6 +1243,7 @@ var_names =  rownames(interest_working_home_dat)
 interest_working_home_dat$var_names = var_names
 typeof(interest_working_home_dat$Frequency)
 interest_working_home_dat$Percent = round(interest_working_home_dat$Percent,0)
+greater_interest = sum(interest_working_home_dat$Percent[5:7])
 interest_working_home_dat$Percent = paste0(interest_working_home_dat$Percent, "%")
 title_interest_working_home_dat = paste0("What is your level of interest in providing televideo \n services in the future?", " ", "n=", n_interest_working_home_dat)
 plot_interest_working_home = ggplot(interest_working_home_dat, aes(x = var_names,y = Frequency, fill = var_names))+
@@ -1273,8 +1253,7 @@ plot_interest_working_home = ggplot(interest_working_home_dat, aes(x = var_names
   theme(legend.position = "none")+
   geom_text_repel(label = interest_working_home_dat$Percent, vjust = -.5)
 plot_interest_working_home
-interest_working_home_dat
-34+24+17
+greater_interest
 ```
 barriers_work_home
 Are there barriers limiting your interest in providing televideo from home in the future?  If so, please list them.
@@ -1418,6 +1397,7 @@ iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
 pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
 
 supervisor_dat = data.frame(ess, iss, pos)
+supervisor_dat_p = supervisor_dat
 supervisor_dat = apply(supervisor_dat, 2, mean, na.rm = TRUE)
 supervisor_dat = data.frame(supervisor_dat)
 supervisor_dat
@@ -1432,8 +1412,15 @@ plot_ess = ggplot(supervisor_dat, aes(x = var_names,y = supervisor_dat, fill = s
   scale_y_continuous(limits = c(0,5))+
   labs(fill = "")
 plot_ess
-supervisor_dat
-supervisor_dat$percent = round(supervisor_dat$supervisor_dat / 5,2)
+supervisor_dat_p_complete = data.frame(apply(supervisor_dat_p, 2, function(x){ifelse(x > 3,1,0)}))
+supervisor_dat_p_complete = na.omit(supervisor_dat_p_complete)
+n_supervisor_dat_p_complete = dim(supervisor_dat_p_complete)[1]
+supervisor_dat_p_sum = apply(supervisor_dat_p_complete, 2, sum)
+supervisor_dat_p_p = round(supervisor_dat_p_sum / n_supervisor_dat_p_complete,2)
+supervisor_dat_p_p
+supervisor_dat_p_n_p = rbind(supervisor_dat_p_sum, supervisor_dat_p_p)
+rownames(supervisor_dat_p_n_p) = c("N", "%")
+supervisor_dat_p_n_p
 
 ```
 
