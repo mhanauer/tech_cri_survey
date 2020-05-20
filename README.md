@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-14_0823.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-20_0453.csv", header = TRUE, na.strings = c(""))
 tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
@@ -22,7 +22,7 @@ Check missingness, create data sets, and n's
 6, I do not provide televideo or teleaudio services not included in clincical data set.
 
 1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
-```{r echo=FALSE}
+```{r}
 library(naniar)
 library(descr)
 library(gt)
@@ -74,7 +74,7 @@ n_no_zoom = sum(n_no_zoom)
 n_zoom+n_no_zoom == n_clinician_survey
 ```
 Job title by state
-```{r echo=FALSE}
+```{r}
 job_title_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
 n_job_title = dim(job_title_dat)[1]
 
@@ -169,7 +169,7 @@ title_situation = paste0("Please choose the option that best describes your situ
 plot_situation = ggplot(situation_dat, aes(x = situation,y =n, fill = state))+
   geom_bar(stat = "identity", position = "dodge2")+
   labs(title=title_situation, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,700))+
+  scale_y_continuous(limits = c(0,1000))+
   geom_text(aes(label = situation_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)+
   labs(fill = "State")
 plot_situation
@@ -817,7 +817,7 @@ barriers_snap_md_use
 We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply. 
 1, Difficulty developing treatment plans | 2, Difficulty coordinating services across multiple providers | 3, Client's limited access to technology | 4, Client's limited access to private space | 5, Lack of clear policies for conducting televideo / teleaudio | 6, Lack of security for conducting televideo / teleaudio | 7, Decreased rapport with client(s) | 8, Difficulty gathering data from client(s) | 9, Difficulty accessing client(s) information | 10, Clients are uncomfortable with the technology | 11, Lack of training opportunities | 12, Other barriers not listed above
 
-```{r echo=FALSE}
+```{r}
 barriers_snap_md_use = tech_cri_dat_complete[,42:53]
 barriers_snap_md_use = apply(barriers_snap_md_use, 2, sum)
 barriers_snap_md_use = data.frame(barriers_snap_md_use)
@@ -908,6 +908,7 @@ table_barriers_zoom_use =
   cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
 table_barriers_zoom_use
 gtsave(table_barriers_zoom_use, "table_barriers_zoom_use.png")
+
 ```
 other_zoom_barriers_use
 Please list the other barrier(s).
@@ -921,33 +922,21 @@ setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinici
 other_zoom_use_complete_dat = read.csv("other_zoom_barriers_use_complete_dat.csv", header = TRUE, na.strings = "")
 other_barriers = other_zoom_use_complete_dat[,2:5]
 
-n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
-n_state_other_barriers = data.frame(n_state_other_barriers)
-n_state_other_barriers = n_state_other_barriers[1,]
-
 n_other_barriers = dim(other_barriers)[1]
 other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
 other_barriers_long_complete = na.omit(other_barriers_long)
 other_barriers_long_complete
-other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
+other_barriers_long_complete_results = other_barriers_long_complete %>% count(Theme.1)
 other_barriers_long_complete_results
-
-other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == "Indiana", other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == "Tennessee", other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == "Illinois", other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == "Florida", other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$Another.state))))
-
+other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
 
 other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
 other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
 
 
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Another.state)))))
-
-
-other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
-
-other_barriers_long_complete_results$state = factor(other_barriers_long_complete_results$state, levels = levels(other_barriers_long_complete_results$state)[5:1])
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
+other_barriers_long_complete_results = other_barriers_long_complete_results[order(-other_barriers_long_complete_results$n),]
 #describe.factor(other_barriers_long_complete_results$state)
-colnames(other_barriers_long_complete_results)[2] = "Theme"
+colnames(other_barriers_long_complete_results)[1:2] = c("Theme", "n")
 title_other_barriers = paste0("Other barriers to using Zoom")
 table_other_zoom_use = 
   gt(other_barriers_long_complete_results) %>%
@@ -1454,14 +1443,18 @@ length(something_else_complete)
 State
 1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
 tech_cri_dat_complete
-```{r echo=FALSE}
+```{r}
 state_dat = na.omit(tech_cri_dat_complete$state)
 state_dat = data.frame(state = state_dat)
 n_state_dat = dim(state_dat)[1]
 state_dat = data.frame(freq(state_dat$state))
 ## Get rid of total change to 6 later
 state_dat = state_dat[-6,]
-state_dat$var_names = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
+state_dat$var_names = c("Tennessee", "Indiana", "Illinois", "Florida", "Another state")
+state_dat$var_names = as.factor(state_dat$var_names)
+
+state_dat$var_names = factor(state_dat$var_names, levels = levels(state_dat$var_names)[5:1])
+
 state_dat$Percent = state_dat$Percent / 100
 state_dat$Percent = round(state_dat$Percent, 2)*100
 state_dat$Percent = paste0(state_dat$Percent, "%")
@@ -1478,7 +1471,7 @@ plot_state
 age
 What is your age?
 1, 18 to 25 years old | 2, 26 to 34 years old | 3, 35 to 44 years old | 4, 45 to 54 years old | 5, 55 to 64 years old | 6, 65 to 74 years old | 7, 75+
-```{r echo=FALSE}
+```{r}
 age_dat = na.omit(tech_cri_dat_complete$age)
 age_dat = data.frame(age = age_dat)
 n_age_dat = dim(age_dat)[1]
@@ -1530,7 +1523,7 @@ plot_race
 Gender
 What is your gender identity?
 1, Male | 2, Female | 3, Another gender identity | 4, Prefer not to respond
-```{r echo=FALSE}
+```{r}
 gender_dat = na.omit(tech_cri_dat_complete$gender)
 gender_dat = data.frame(gender = gender_dat)
 n_gender_dat = dim(gender_dat)[1]
@@ -1570,7 +1563,7 @@ title_job_title_extend = paste0("Which option best describes your job title?", "
 plot_job_title_extend = ggplot(job_title_extend_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_job_title_extend, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,1000))+
+  scale_y_continuous(limits = c(0,1500))+
   theme(legend.position = "none")+
   geom_text_repel(label = job_title_extend_dat$Percent, vjust = -.5)
 plot_job_title_extend
