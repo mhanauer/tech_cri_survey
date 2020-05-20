@@ -1180,7 +1180,7 @@ telehealth_sat_p_complete
 comfort_televideo
 What is your level of comfort with televideo?
 1, Very uncomfortable | 2, Uncomfortable | 3, Somewhat uncomfortable | 4, Neither uncomfortable nor comfortable | 5, Somewhat comfortable | 6, Comfortable | 7, Very comfortable
-```{r echo=FALSE}
+```{r}
 
 ### Client survey data
 #clincian_survey_dat
@@ -1205,10 +1205,10 @@ greater_comfort = sum(comfort_televideo_dat$Percent[5:7])
 comfort_televideo_dat$Percent = paste0(comfort_televideo_dat$Percent, "%")
 ### Change levels to reposne options
 library(dplyr)
-comfort_televideo_dat$var_names = recode(comfort_televideo_dat$var_names, "1" = "Very uncomfortable", "2" = "Uncomfortable", "3" = "Somewhat uncomfortable", "4" = "Neither uncomfortable nor comfortable", "5" = "Somewhat comfortable", "6" = "Comfortable", "7" = "Very comfortable")
+comfort_televideo_dat$var_names = recode(comfort_televideo_dat$var_names, "1" = "Very \n uncomfortable", "2" = "Uncomfortable", "3" = "Somewhat \n uncomfortable", "4" = "Neither uncomfortable \n nor comfortable", "5" = "Somewhat \n comfortable", "6" = "Comfortable", "7" = "Very \n comfortable")
 comfort_televideo_dat$var_names = as.factor(comfort_televideo_dat$var_names)
 levels(comfort_televideo_dat$var_names)
-comfort_televideo_dat$var_names = factor(comfort_televideo_dat$var_names, levels = c("Very uncomfortable", "Uncomfortable", "Somewhat uncomfortable", "Neither uncomfortable nor comfortable", "Somewhat comfortable", "Comfortable", "Very comfortable"))
+comfort_televideo_dat$var_names = factor(comfort_televideo_dat$var_names, levels = c("Very \n uncomfortable", "Uncomfortable", "Somewhat \n uncomfortable", "Neither uncomfortable \n nor comfortable", "Somewhat \n comfortable", "Comfortable", "Very \n comfortable"))
 levels(comfort_televideo_dat$var_names)
 
 title_comfort_televideo_dat = paste0("What is your level of comfort with televideo?", " ", "n=", n_comfort_televideo_dat)
@@ -1252,10 +1252,10 @@ interest_working_home_dat$Percent = round(interest_working_home_dat$Percent,0)
 greater_interest = sum(interest_working_home_dat$Percent[5:7])
 interest_working_home_dat$Percent = paste0(interest_working_home_dat$Percent, "%")
 
-interest_working_home_dat$var_names = recode(interest_working_home_dat$var_names, "1" = "Very disinterested", "2" = "Disinterested", "3" = "Somewhat disinterested", "4" = "Neither disinterested nor interested", "5" = "Somewhat interested", "6" = "Interested", "7" = "Very interested")
+interest_working_home_dat$var_names = recode(interest_working_home_dat$var_names, "1" = "Very \n disinterested", "2" = "Disinterested", "3" = "Somewhat \n disinterested", "4" = "Neither disinterested \n nor interested", "5" = "Somewhat \n interested", "6" = "Interested", "7" = "Very \n interested")
 interest_working_home_dat$var_names = as.factor(interest_working_home_dat$var_names)
 levels(interest_working_home_dat$var_names)
-interest_working_home_dat$var_names = factor(interest_working_home_dat$var_names, levels = c("Very disinterested", "Disinterested", "Somewhat disinterested", "Neither disinterested nor interested", "Somewhat interested", "Interested", "Very interested"))
+interest_working_home_dat$var_names = factor(interest_working_home_dat$var_names, levels = c("Very \n disinterested", "Disinterested", "Somewhat \n disinterested", "Neither disinterested \n nor interested", "Somewhat \n interested", "Interested", "Very \n interested"))
 levels(interest_working_home_dat$var_names)
 
 greater_interest_text = paste0("% who are somewhat interested or greater", " ", "=", " ", greater_interest, "%")
@@ -1423,12 +1423,15 @@ var_names = c("Emotional social support", "Instrumental social support", "Percei
 supervisor_dat = data.frame(var_names, supervisor_dat)
 rownames(supervisor_dat) = NULL
 ## Get rid of total
+supervisor_dat$supervisor_dat = round(supervisor_dat$supervisor_dat,2)
 title_supervisor_dat = paste0("Supervison support", " ", "n=", n_clinician_survey)
 plot_ess = ggplot(supervisor_dat, aes(x = var_names,y = supervisor_dat, fill = supervisor_dat))+
   geom_bar(stat = "identity")+
   labs(title=title_supervisor_dat, x ="Outcome", y = "Average rating")+
   scale_y_continuous(limits = c(0,5))+
-  labs(fill = "")
+  labs(fill = "")+
+  geom_text(aes(label = supervisor_dat), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
 plot_ess
 supervisor_dat_p_complete = data.frame(apply(supervisor_dat_p, 2, function(x){ifelse(x > 3,1,0)}))
 supervisor_dat_p_complete = na.omit(supervisor_dat_p_complete)
@@ -1441,6 +1444,161 @@ rownames(supervisor_dat_p_n_p) = c("N", "%")
 supervisor_dat_p_n_p
 
 ```
+Correlation with supervisor scores across all three with the number of barriers for those who did not use SnapMD
+
+Subset data for those who did not select SnapMD and grab all the variables for barriers_snap_md
+```{r}
+
+supervisor_dat = clincian_survey_dat[,139:147]
+supervisor_dat[supervisor_dat == 6] = NA
+ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
+iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
+pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
+
+supervisor_dat = data.frame(ess, iss, pos)
+
+## Sum across all barriers
+barriers_snap_md = apply(clincian_survey_dat[,84:95], 1, sum)
+hist(barriers_snap_md)
+
+cor_snap_no_use_dat = data.frame(supervisor_dat, barriers_snap_md, service_provided___4 = clincian_survey_dat$service_provided___4, service_provided___5 = clincian_survey_dat$service_provided___5)
+
+
+cor_snap_no_use_dat = subset(cor_snap_no_use_dat,service_provided___4 == 0 & service_provided___5 == 0)
+cor_snap_no_use_dat_complete = na.omit(cor_snap_no_use_dat)
+cor_snap_no_use_dat_complete[,c(5,6)] = NULL
+cor_snap_no_use_dat_complete
+n_cor_snap_no_use_dat_complete = dim(cor_snap_no_use_dat_complete)[1]
+
+cor_ess = cor.test(cor_snap_no_use_dat_complete$ess, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
+cor_ess = round(cor_ess$estimate,2)
+cor_ess
+
+cor_iss = cor.test(cor_snap_no_use_dat_complete$iss, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
+cor_iss = round(cor_iss$estimate,2)
+
+cor_pos = cor.test(cor_snap_no_use_dat_complete$pos, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
+cor_pos = round(cor_pos$estimate,2)
+cor_all =  rbind(cor_ess, cor_iss, cor_pos)
+
+cor_snap_no_use = data.frame(cor_names = c("Correlation ESS", "Correlation ISS", "Correlation POS"), cor_all)
+rownames(cor_snap_no_use) = NULL
+cor_snap_no_use
+
+
+title_cor_snap_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to SnapMD for those not using SnapMD", " ", "n=", n_cor_snap_no_use_dat_complete)
+table_cor_snap_no_use = 
+  gt(cor_snap_no_use) %>%
+  tab_header(title = title_cor_snap_no_use)%>%
+  tab_footnote(footnote = "All statistically significant < .01." ,  locations = cells_body(columns = vars(cor), rows = 1)) %>%
+  cols_label(cor_names = md("Supervisor support construct"), cor = md("Spearman correlation"))
+table_cor_snap_no_use
+
+gtsave(table_cor_snap_no_use, "table_cor_snap_no_use.png")
+
+```
+Correlation with supervisor scores across all three with the number of barriers for those who did not use Zoom
+```{r}
+supervisor_dat = clincian_survey_dat[,139:147]
+supervisor_dat[supervisor_dat == 6] = NA
+ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
+iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
+pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
+
+supervisor_dat = data.frame(ess, iss, pos)
+
+## Sum across all barriers
+#barriers_zoom = subset(clincian_survey_dat, service_provided___2 == 0 & service_provided___3 == 0)
+barriers_zoom = apply(clincian_survey_dat[,97:108],1,sum) 
+
+
+cor_zoom_no_use_dat = data.frame(supervisor_dat, barriers_zoom, service_provided___2 = clincian_survey_dat$service_provided___2, service_provided___3 = clincian_survey_dat$service_provided___3)
+
+
+cor_zoom_no_use_dat = subset(cor_zoom_no_use_dat,service_provided___2 == 0 & service_provided___3 == 0)
+
+cor_zoom_no_use_dat_complete = na.omit(cor_zoom_no_use_dat)
+cor_zoom_no_use_dat_complete[,c(5,6)] = NULL
+cor_zoom_no_use_dat_complete
+n_cor_zoom_no_use_dat_complete = dim(cor_zoom_no_use_dat_complete)[1]
+
+cor_ess = cor.test(cor_zoom_no_use_dat_complete$ess, cor_zoom_no_use_dat_complete$barriers_zoom, cor = "spearman")
+cor_ess = round(cor_ess$estimate,2)
+cor_ess
+
+cor_iss = cor.test(cor_zoom_no_use_dat_complete$iss, cor_zoom_no_use_dat_complete$barriers_zoom, cor = "spearman")
+cor_iss = round(cor_iss$estimate,2)
+
+cor_pos = cor.test(cor_zoom_no_use_dat_complete$pos, cor_zoom_no_use_dat_complete$barriers_zoom, cor = "spearman")
+cor_pos = round(cor_pos$estimate,2)
+cor_all =  rbind(cor_ess, cor_iss, cor_pos)
+
+cor_zoom_no_use = data.frame(cor_names = c("Correlation ESS", "Correlation ISS", "Correlation POS"), cor_all)
+rownames(cor_zoom_no_use) = NULL
+cor_zoom_no_use
+
+
+title_cor_zoom_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to zoomMD for those not using Zoom", " ", "n=", n_cor_zoom_no_use_dat_complete)
+table_cor_zoom_no_use = 
+  gt(cor_zoom_no_use) %>%
+  tab_header(title = title_cor_zoom_no_use)%>%
+   tab_footnote(footnote = "Only Correlation POS statistically significant < .01." ,  locations = cells_body(columns = vars(cor), rows = 1)) %>%
+  cols_label(cor_names = md("Supervisor support construct"), cor = md("Spearman correlation"))
+table_cor_zoom_no_use
+
+gtsave(table_cor_zoom_no_use, "table_cor_zoom_no_use.png")
+```
+
+
+Subset data for those who did not select SnapMD and grab all the variables for barriers_snap_md
+```{r}
+
+supervisor_dat = clincian_survey_dat[,139:147]
+supervisor_dat[supervisor_dat == 6] = NA
+ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
+iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
+pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
+
+supervisor_dat = data.frame(ess, iss, pos)
+
+## Sum across all barriers
+barriers_snap_md = apply(clincian_survey_dat[,84:95], 1, sum)
+hist(barriers_snap_md)
+
+cor_snap_no_use_dat = data.frame(supervisor_dat, barriers_snap_md, service_provided___4 = clincian_survey_dat$service_provided___4, service_provided___5 = clincian_survey_dat$service_provided___5)
+cor_snap_no_use_dat = subset(cor_snap_no_use_dat,service_provided___4 == 0 & service_provided___5 == 0)
+cor_snap_no_use_dat_complete = na.omit(cor_snap_no_use_dat)
+cor_snap_no_use_dat_complete[,c(5,6)] = NULL
+cor_snap_no_use_dat_complete
+n_cor_snap_no_use_dat_complete = dim(cor_snap_no_use_dat_complete)[1]
+
+cor_ess = cor.test(cor_snap_no_use_dat_complete$ess, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
+cor_ess = round(cor_ess$estimate,2)
+cor_ess
+
+cor_iss = cor.test(cor_snap_no_use_dat_complete$iss, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
+cor_iss = round(cor_iss$estimate,2)
+
+cor_pos = cor.test(cor_snap_no_use_dat_complete$pos, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
+cor_pos = round(cor_pos$estimate,2)
+cor_all =  rbind(cor_ess, cor_iss, cor_pos)
+
+cor_snap_no_use = data.frame(cor_names = c("Correlation ESS", "Correlation ISS", "Correlation POS"), cor_all)
+rownames(cor_snap_no_use) = NULL
+cor_snap_no_use
+
+
+title_cor_snap_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to SnapMD for those not using SnapMD", " ", "n=", n_cor_snap_no_use_dat_complete)
+table_cor_snap_no_use = 
+  gt(cor_snap_no_use) %>%
+  tab_header(title = title_cor_snap_no_use)%>%
+  cols_label(cor_names = md("Supervisor support construct"), cor = md("Spearman correlation"))
+table_cor_snap_no_use
+
+gtsave(table_cor_snap_no_use, "table_cor_snap_no_use.png")
+
+```
+
 
 benefits
 Code later
