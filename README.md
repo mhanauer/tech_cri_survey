@@ -29,6 +29,7 @@ library(gt)
 library(ggplot2)
 library(ggrepel)
 library(webshot)
+install.packages("prettyR")
 library(prettyR)
 library(dplyr)
 miss_var_summary(tech_cri_dat_complete)
@@ -1136,7 +1137,7 @@ Televideo has helped me communicate with my client(s).
 1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
 
 Let's do an average score and then plot by all four of them
-```{r echo=FALSE}
+```{r}
 ### Client survey data
 #clincian_survey_dat
 telehealth_sat_dat = clincian_survey_dat
@@ -1160,9 +1161,11 @@ plot_telehealth_sat = ggplot(telehealth_sat_dat, aes(x = var_names,y = telehealt
   geom_bar(stat = "identity")+
   labs(title=title_telehealth_sat, x ="Outcome", y = "Average rating")+
   scale_y_continuous(limits = c(0,5))+
-  labs(fill = "")
+  labs(fill = "")+
+  geom_text(aes(label = telehealth_sat_dat), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
 plot_telehealth_sat
-telehealth_sat_p = telehealth_sat_dat
+
 telehealth_sat_p = apply(telehealth_sat_p, 2, function(x){ifelse(x > 3,1,0)})
 telehealth_sat_p
 telehealth_sat_p = data.frame(telehealth_sat_p)
@@ -1200,16 +1203,30 @@ typeof(comfort_televideo_dat$Frequency)
 comfort_televideo_dat$Percent = round(comfort_televideo_dat$Percent,0)
 greater_comfort = sum(comfort_televideo_dat$Percent[5:7])
 comfort_televideo_dat$Percent = paste0(comfort_televideo_dat$Percent, "%")
+### Change levels to reposne options
+library(dplyr)
+comfort_televideo_dat$var_names = recode(comfort_televideo_dat$var_names, "1" = "Very uncomfortable", "2" = "Uncomfortable", "3" = "Somewhat uncomfortable", "4" = "Neither uncomfortable nor comfortable", "5" = "Somewhat comfortable", "6" = "Comfortable", "7" = "Very comfortable")
+comfort_televideo_dat$var_names = as.factor(comfort_televideo_dat$var_names)
+levels(comfort_televideo_dat$var_names)
+comfort_televideo_dat$var_names = factor(comfort_televideo_dat$var_names, levels = c("Very uncomfortable", "Uncomfortable", "Somewhat uncomfortable", "Neither uncomfortable nor comfortable", "Somewhat comfortable", "Comfortable", "Very comfortable"))
+levels(comfort_televideo_dat$var_names)
+
 title_comfort_televideo_dat = paste0("What is your level of comfort with televideo?", " ", "n=", n_comfort_televideo_dat)
-#comfort_televideo_dat$Frequency = paste0("n=",comfort_televideo_dat$Frequency)
+
+greater_comfort_text = paste0("% who are somewhat comfortable or greater", " ", "=", " ", greater_comfort, "%")
+### Create extra annotation
+grob <- grobTree(textGrob(greater_comfort_text, x=0.35,  y=0.95, hjust=0,
+  gp=gpar(col="red", fontsize=13, fontface="italic")))
+
 plot_comfort_televideo = ggplot(comfort_televideo_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_comfort_televideo_dat, x ="Response option", y = "Count")+
   scale_y_continuous(limits = c(0,600))+
   theme(legend.position = "none")+
-  geom_text_repel(label = comfort_televideo_dat$Percent, vjust = -.5)
+  geom_text_repel(label = comfort_televideo_dat$Percent, vjust = -.5)+
+  annotation_custom(grob)
 plot_comfort_televideo
-greater_comfort
+
 ```
 increase_comfort
 Is there something Centerstone can do to increase your comfort level?  If so, please describe what Centerstone can do.
@@ -1221,7 +1238,7 @@ What is your level of interest in providing televideo services in the future?
 1, Very disinterested | 2, Disinterested | 3, Somewhat disinterested | 4, Neither disinterested nor interested | 5, Somewhat interested | 6, Interested | 7, Very interested
 
 Also include those who service_provided != 6
-```{r echo=FALSE}
+```{r}
 interest_working_home_dat = na.omit(clincian_survey_dat$interest_working_home)
 interest_working_home_dat = data.frame(interest_working_home = interest_working_home_dat)
 n_interest_working_home_dat = dim(interest_working_home_dat)[1]
@@ -1234,15 +1251,27 @@ typeof(interest_working_home_dat$Frequency)
 interest_working_home_dat$Percent = round(interest_working_home_dat$Percent,0)
 greater_interest = sum(interest_working_home_dat$Percent[5:7])
 interest_working_home_dat$Percent = paste0(interest_working_home_dat$Percent, "%")
+
+interest_working_home_dat$var_names = recode(interest_working_home_dat$var_names, "1" = "Very disinterested", "2" = "Disinterested", "3" = "Somewhat disinterested", "4" = "Neither disinterested nor interested", "5" = "Somewhat interested", "6" = "Interested", "7" = "Very interested")
+interest_working_home_dat$var_names = as.factor(interest_working_home_dat$var_names)
+levels(interest_working_home_dat$var_names)
+interest_working_home_dat$var_names = factor(interest_working_home_dat$var_names, levels = c("Very disinterested", "Disinterested", "Somewhat disinterested", "Neither disinterested nor interested", "Somewhat interested", "Interested", "Very interested"))
+levels(interest_working_home_dat$var_names)
+
+greater_interest_text = paste0("% who are somewhat interested or greater", " ", "=", " ", greater_interest, "%")
+### Create extra annotation
+grob <- grobTree(textGrob(greater_interest_text, x=0.35,  y=0.95, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
+
 title_interest_working_home_dat = paste0("What is your level of interest in providing televideo \n services in the future?", " ", "n=", n_interest_working_home_dat)
 plot_interest_working_home = ggplot(interest_working_home_dat, aes(x = var_names,y = Frequency, fill = var_names))+
   geom_bar(stat = "identity")+
   labs(title=title_interest_working_home_dat, x ="Response option", y = "Count")+
   scale_y_continuous(limits = c(0,600))+
   theme(legend.position = "none")+
-  geom_text_repel(label = interest_working_home_dat$Percent, vjust = -.5)
+  geom_text_repel(label = interest_working_home_dat$Percent, vjust = -.5)+
+  annotation_custom(grob)
 plot_interest_working_home
-greater_interest
 ```
 barriers_work_home
 Are there barriers limiting your interest in providing televideo from home in the future?  If so, please list them.
@@ -1378,7 +1407,7 @@ contribution
 extra_effort
 
 1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
-```{r echo=FALSE}
+```{r}
 supervisor_dat = clincian_survey_dat[,139:147]
 supervisor_dat[supervisor_dat == 6] = NA
 ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
