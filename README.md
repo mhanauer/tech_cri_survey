@@ -1608,6 +1608,7 @@ Cat do first 200
 #head(clincian_survey_dat$benefits)
 
 benefits_complete = na.omit(clincian_survey_dat$benefits)
+write.csv(benefits_complete,"benefits_complete.csv", row.names = FALSE)
 length(benefits_complete)
 ```
 barriers 
@@ -1617,6 +1618,7 @@ Jess do first 200
 ```{r echo=FALSE}
 #head(clincian_survey_dat$barriers)
 barriers_complete = na.omit(clincian_survey_dat$barriers)
+write.csv(barriers_complete, "barriers_complete.csv", row.names = FALSE)
 length(barriers_complete)
 ```
 something_else
