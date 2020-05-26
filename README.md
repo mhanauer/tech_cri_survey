@@ -74,6 +74,15 @@ n_no_zoom = sum(n_no_zoom)
 
 n_zoom+n_no_zoom == n_clinician_survey
 ```
+Tech survey responses
+```{r}
+tech_team_responses_5_26_20 = subset(tech_cri_dat_complete, follow_up___1 == 1)
+dim(tech_team_reponses)
+
+write.csv(tech_team_responses_5_26_20, "tech_team_responses_5_26_20.csv", row.names = FALSE)
+```
+
+
 Job title by state
 ```{r}
 job_title_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
