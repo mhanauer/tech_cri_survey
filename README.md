@@ -11,10 +11,12 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-20_0453.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-27_1016.csv", header = TRUE, na.strings = c(""))
 tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
+dim(tech_cri_dat)[1]
+dim(tech_cri_dat_complete)[1]
 ```
 Check missingness, create data sets, and n's
 1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
