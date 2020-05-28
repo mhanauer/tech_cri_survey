@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-27_1016.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-28_1508.csv", header = TRUE, na.strings = c(""))
 tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
@@ -31,7 +31,6 @@ library(gt)
 library(ggplot2)
 library(ggrepel)
 library(webshot)
-install.packages("prettyR")
 library(prettyR)
 library(dplyr)
 miss_var_summary(tech_cri_dat_complete)
