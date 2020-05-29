@@ -1242,6 +1242,13 @@ increase_comfort
 Is there something Centerstone can do to increase your comfort level?  If so, please describe what Centerstone can do.
 ```{r echo=FALSE}
 #head(clincian_survey_dat$increase_comfort,15)
+increase_comfort = data.frame(increase_comfort = clincian_survey_dat$increase_comfort, follow_up___1 = clincian_survey_dat$follow_up___1, follow_up___2 = clincian_survey_dat$follow_up___2, first_name = clincian_survey_dat$first_name, last_name = clincian_survey_dat$last_name, clincian_survey_dat$email)
+increase_comfort$comfort_na = is.na(increase_comfort$increase_comfort)
+increase_comfort = subset(increase_comfort, comfort_na == FALSE)
+dim(increase_comfort)
+increase_comfort = subset(increase_comfort ,follow_up___1 == 1 | follow_up___2 == 2)
+increase_comfort$comfort_na = NULL
+write.csv(increase_comfort, "increase_comfort.csv")
 ```
 interest_working_home
 What is your level of interest in providing televideo services in the future?
