@@ -1,1773 +1,803 @@
 ---
-title: "tech_cri"
-output:
-  word_document: default
-  html_document: default
+title: "Test"
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-Load in data
-```{r echo=FALSE, warning=FALSE}
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-28_1508.csv", header = TRUE, na.strings = c(""))
-tech_cri_dat = tech_cri_dat[-c(1:6),]
+Load data and get rid of non-complete data points
 
-tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
-dim(tech_cri_dat)[1]
-dim(tech_cri_dat_complete)[1]
-```
-Check missingness, create data sets, and n's
-1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
-
-6, I do not provide televideo or teleaudio services not included in clincical data set.
-
-1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
+my_first_instrument_complete
+2 complete 
+0 is not complete
 ```{r}
-library(naniar)
+library(prettyR)
 library(descr)
-library(gt)
 library(ggplot2)
-library(ggrepel)
-library(webshot)
-library(prettyR)
 library(dplyr)
-miss_var_summary(tech_cri_dat_complete)
-dim(tech_cri_dat_complete)
-dim(tech_cri_dat)
+library(grid)
+#TelehealthZoomclient_DATA_2020-05-20_1337
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
+tele_zoom_dat = read.csv("TelehealthZoomclient_DATA_2020-05-26_0627.csv", header = TRUE, na.strings = c(""))
+tele_zoom_dat_complete  = subset(tele_zoom_dat, my_first_instrument_complete == 2)
+dim(tele_zoom_dat_complete)
+library(naniar)
+## use pairwise
+miss_var_summary(tele_zoom_dat_complete)
 
-describe.factor(tech_cri_dat_complete$state)
-tech_cri_dat_complete$state = ifelse(tech_cri_dat_complete$state == 1, "Indiana", ifelse(tech_cri_dat_complete$state == 2, "Florida", ifelse(tech_cri_dat_complete$state == 3, "Tennessee", ifelse(tech_cri_dat_complete$state == 4, "Illinois", ifelse(tech_cri_dat_complete$state == 5, "Another state", "Wrong")))))
-tech_cri_dat_complete$state = as.factor(tech_cri_dat_complete$state)
-tech_cri_dat_complete$state = factor(tech_cri_dat_complete$state, levels = c("Tennessee", "Indiana", "Illinois", "Florida", "Another state"))
-describe.factor(tech_cri_dat_complete$state)
-
-### Clinician survey data 
-clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
-clincian_survey_dat = subset(clincian_survey_dat, service_provided___6 != 1)
-
-n_clinician_survey = dim(clincian_survey_dat)[1]
-n_survey = dim(tech_cri_dat_complete)[1]
-n_survey
-
-### For barriers and faciliators to Zoom and SnapMD need the number of people who used each.  This means selecting 
-#1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
-### SnapMD
-n_snap_md = ifelse(clincian_survey_dat$service_provided___4 == 1,1, ifelse(clincian_survey_dat$service_provided___5 == 1, 1, 0))
-n_snap_md = sum(n_snap_md)
-### Zoom
-
-
-n_zoom = ifelse(clincian_survey_dat$service_provided___2 == 1,1, ifelse(clincian_survey_dat$service_provided___3 == 1, 1, 0))
-n_zoom = sum(n_zoom)
-
-n_clinician_survey 
-#### Need if you did not select SnapMD
-n_no_snap_md = ifelse(clincian_survey_dat$service_provided___4 != 1 & clincian_survey_dat$service_provided___5 != 1, 1, 0)
-n_no_snap_md = sum(n_no_snap_md)
-
-### Check you are adding correctly 
-n_no_snap_md + n_snap_md == n_clinician_survey
-#### Need if you did not select Zoom
-n_no_zoom = ifelse(clincian_survey_dat$service_provided___2 != 1 & clincian_survey_dat$service_provided___3 != 1, 1, 0)
-n_no_zoom = sum(n_no_zoom)
-
-n_zoom+n_no_zoom == n_clinician_survey
+### After removing the incomplete only found one staff who took the survey on accident
+tele_zoom_dat_complete = subset(tele_zoom_dat_complete, record_id != 37)
 ```
-Tech survey responses
+video_audio overall
+In the Zoom session you just completed with your Centerstone provider, did you use audio only or audio and video?
+1, Yes video and audio | 2, No audio only
 ```{r}
-tech_team_responses_5_26_20 = subset(tech_cri_dat_complete, follow_up___1 == 1)
-dim(tech_team_reponses)
 
-write.csv(tech_team_responses_5_26_20, "tech_team_responses_5_26_20.csv", row.names = FALSE)
-```
+video_audio_overall_dat = tele_zoom_dat_complete
 
 
-Job title by state
-```{r}
-job_title_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
-n_job_title = dim(job_title_dat)[1]
-
-n_state_job_title = describe.factor(job_title_dat$state, decr.order = FALSE)
-n_state_job_title = data.frame(n_state_job_title)
-n_state_job_title = n_state_job_title[1,]
-n_state_job_title
-
-job_title_dat$job_title = recode(job_title_dat$job_title, "1" = "Client Facing", "2" = "Client Facing Medical Provider","3" = "Non Client Facing")
-job_title_dat = job_title_dat%>% group_by(state) %>% count(job_title)
-
-job_title_dat$percent = ifelse(job_title_dat$state == "Indiana", job_title_dat$n / n_state_job_title$Indiana, ifelse(job_title_dat$state == "Tennessee", job_title_dat$n / n_state_job_title$Tennessee, ifelse(job_title_dat$state == "Illinois", job_title_dat$n / n_state_job_title$Illinois, ifelse(job_title_dat$state == "Florida", job_title_dat$n / n_state_job_title$Florida, job_title_dat$n / n_state_job_title$Another.state))))
-
-job_title_dat$state = ifelse(job_title_dat$state == "Indiana", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Indiana) , ifelse(job_title_dat$state == "Tennessee", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Tennessee), ifelse(job_title_dat$state == "Illinois", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Illinois), ifelse(job_title_dat$state == "Florida", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Florida), paste0(job_title_dat$state, " ", "n=", n_state_job_title$Another.state)))))
-
-job_title_dat$state = as.factor(job_title_dat$state)
-
-job_title_dat$state = factor(job_title_dat$state, levels = levels(job_title_dat$state)[5:1])
-
-job_title_dat$percent = round(job_title_dat$percent, 2)*100
-job_title_dat$percent = paste0(job_title_dat$percent, "%")
-title_job_title = paste0("What work group are you in?", " ", "n=", n_job_title)
+describe.factor(tele_zoom_dat_complete$video_audio)
 
 
-plot_job_title = ggplot(job_title_dat, aes(x = job_title,y =n, fill = state))+
+video_audio_overall_dat = na.omit(data.frame(video_audio_overall = tele_zoom_dat_complete$video_audio))
+n_video_audio_overall = dim(video_audio_overall_dat)[1]
+
+video_audio_overall_dat$video_audio_overall = recode(video_audio_overall_dat$video_audio_overall, "1" = "Yes video and audio", "2" = "No audio only")
+
+
+
+video_audio_overall_dat = video_audio_overall_dat %>% count(video_audio_overall)
+
+video_audio_overall_dat$percent = as.numeric(video_audio_overall_dat$n / n_video_audio_overall)
+
+video_audio_overall_dat$percent = round(video_audio_overall_dat$percent, 2)*100
+video_audio_overall_dat$percent = paste0(video_audio_overall_dat$percent, "%")
+title_video_audio_overalll = paste0("In the Zoom session you just completed with your Centerstone provider, \n did you use audio only or audio and video?", " ", "n=", n_video_audio_overall)
+#reorder(gender_overall, -n)
+
+plot_video_audio_overall = ggplot(video_audio_overall_dat, aes(x = reorder(video_audio_overall, -n),y =n, fill = video_audio_overall))+
   geom_bar(stat = "identity", position = "dodge2")+
-  labs(title=title_job_title, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,700))+
-  geom_text(aes(label = job_title_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)+
-  labs(fill = "State")
-plot_job_title
-
-```
-Job title overall
-Keep state in the data so the N's are consistent above
-
-440+486+238+15	
-```{r}
-job_title_overall_dat = na.omit(data.frame(job_title = tech_cri_dat_complete$job_title, state = tech_cri_dat_complete$state))
-n_job_title_overall = dim(job_title_overall_dat)[1]
-
-
-
-job_title_overall_dat$job_title = recode(job_title_overall_dat$job_title, "1" = "Client Facing", "2" = "Client Facing Medical Provider","3" = "Non Client Facing")
-job_title_overall_dat = job_title_overall_dat %>% count(job_title)
-job_title_overall_dat$percent = as.numeric(job_title_overall_dat$n / n_job_title_overall)
-
-job_title_overall_dat$percent = round(job_title_overall_dat$percent, 2)*100
-job_title_overall_dat$percent = paste0(job_title_overall_dat$percent, "%")
-title_job_title_overall = paste0("What work group are you in?", " ", "n=", n_job_title_overall)
-
-
-plot_job_title_overall = ggplot(job_title_overall_dat, aes(x = job_title,y =n, fill = job_title))+
-  geom_bar(stat = "identity", position = "dodge2")+
-  labs(title=title_job_title_overall, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,2000))+
+  labs(title=title_video_audio_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
   geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
   theme(legend.position = "none")
-plot_job_title_overall
+plot_video_audio_overall
 
 ```
-
-
-### Run this each time need n_why for later
-Graph of situation
-1, I am working from home | 2, I am working from a Centerstone office | 3, I am working both from home some days and at a Centerstone office some days | 4, I am not working at all (On Leave or Cannot Work From Home or Office)
-```{r echo=FALSE}
-#############################
-situation_dat = na.omit(data.frame(situation = tech_cri_dat_complete$situation, state = tech_cri_dat_complete$state))
-n_situation = dim(situation_dat)[1]
-
-n_state_situation = describe.factor(situation_dat$state, decr.order = FALSE)
-n_state_situation = data.frame(n_state_situation)
-n_state_situation = n_state_situation[1,]
-n_state_situation
-
-situation_dat = situation_dat%>% group_by(state) %>% count(situation)
-
-situation_dat$percent = ifelse(situation_dat$state == "Indiana", situation_dat$n / n_state_situation$Indiana, ifelse(situation_dat$state == "Tennessee", situation_dat$n / n_state_situation$Tennessee, ifelse(situation_dat$state == "Illinois", situation_dat$n / n_state_situation$Illinois, ifelse(situation_dat$state == "Florida", situation_dat$n / n_state_situation$Florida, situation_dat$n / n_state_situation$Another.state))))
-
-situation_dat$state = ifelse(situation_dat$state == "Indiana", paste0(situation_dat$state, " ", "n=", n_state_situation$Indiana) , ifelse(situation_dat$state == "Tennessee", paste0(situation_dat$state, " ", "n=", n_state_situation$Tennessee), ifelse(situation_dat$state == "Illinois", paste0(situation_dat$state, " ", "n=", n_state_situation$Illinois), ifelse(situation_dat$state == "Florida", paste0(situation_dat$state, " ", "n=", n_state_situation$Florida), paste0(situation_dat$state, " ", "n=", n_state_situation$Another.state)))))
-
-situation_dat$state = as.factor(situation_dat$state)
-
-situation_dat$state = factor(situation_dat$state, levels = levels(situation_dat$state)[5:1])
-
-situation_dat$percent = round(situation_dat$percent, 2)*100
-situation_dat$percent = paste0(situation_dat$percent, "%")
-situation_dat$situation = recode(situation_dat$situation, "1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working")
-
-title_situation = paste0("Please choose the option that best describes your situation.", " ", "n=", n_situation)
-plot_situation = ggplot(situation_dat, aes(x = situation,y =n, fill = state))+
-  geom_bar(stat = "identity", position = "dodge2")+
-  labs(title=title_situation, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,1000))+
-  geom_text(aes(label = situation_dat$percent), position=position_dodge(width=0.9), vjust=-0.25)+
-  labs(fill = "State")
-plot_situation
-
-```
-Situation overall
+return_client overall
+Are you a new or returning client?
+1, New | 2, Returning
 ```{r}
-situation_overall_dat = na.omit(data.frame(situation = tech_cri_dat_complete$situation, state = tech_cri_dat_complete$state))
-n_situation_overall = dim(situation_overall_dat)[1]
+return_client_overall_dat = tele_zoom_dat_complete
 
 
-situation_overall_dat$situation = recode(situation_overall_dat$situation, "1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working")
 
-situation_overall_dat = situation_overall_dat %>% count(situation)
-situation_overall_dat$percent = as.numeric(situation_overall_dat$n / n_situation_overall)
+return_client_overall_dat = na.omit(data.frame(return_client_overall = tele_zoom_dat_complete$return_client))
+n_return_client_overall = dim(return_client_overall_dat)[1]
 
-situation_overall_dat$percent = round(situation_overall_dat$percent, 2)*100
-situation_overall_dat$percent = paste0(situation_overall_dat$percent, "%")
-title_situation_overall = paste0("What work group are you in?", " ", "n=", n_situation_overall)
-write.csv(situation_overall_dat, "situation_overall_dat.csv", row.names = FALSE)
+return_client_overall_dat$return_client_overall = recode(return_client_overall_dat$return_client_overall, "1" = "New", "2" = "Returning")
 
-plot_situation_overall = ggplot(situation_overall_dat, aes(x = situation,y =n, fill = situation))+
+
+
+return_client_overall_dat = return_client_overall_dat %>% count(return_client_overall)
+
+return_client_overall_dat$percent = as.numeric(return_client_overall_dat$n / n_return_client_overall)
+
+return_client_overall_dat$percent = round(return_client_overall_dat$percent, 2)*100
+return_client_overall_dat$percent = paste0(return_client_overall_dat$percent, "%")
+title_return_client_overalll = paste0("Are you a new or returning client?", " ", "n=", n_return_client_overall)
+
+plot_return_client_overall = ggplot(return_client_overall_dat, aes(x = reorder(return_client_overall, -n),y =n, fill = return_client_overall))+
   geom_bar(stat = "identity", position = "dodge2")+
-  labs(title=title_situation_overall, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,2000))+
+  labs(title=title_return_client_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
   geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
   theme(legend.position = "none")
-plot_situation_overall
+plot_return_client_overall
+
 
 
 ```
-
-
-Home productivity
-
-1, I have no barriers and am working productively 
-2, I have poor internet/connection 
-3, I lack enabling technology equipment (Examples: monitor, headset, webcam, phone) 
-4, My workspace is not ideal (lacks space, lacks privacy, inadequate furnishing) 
-5, Other
-
-"1"= "Working from home","2"= "Centerstone office","3"= "Working from home\n and Centerstone office", "4" = "Not working"
-
-
-```{r echo=FALSE}
-home_productive_dat = subset(tech_cri_dat_complete, situation == 1)
-home_productive_dat = na.omit(data.frame(home_productive_dat[,6:10], state = home_productive_dat$state))
-
-
-n_state_home_productive = describe.factor(home_productive_dat$state, decr.order = FALSE)
-n_state_home_productive = data.frame(n_state_home_productive)
-n_state_home_productive = n_state_home_productive[1,]
-n_state_home_productive
-home_productive_dat = reshape(home_productive_dat, varying = list(c("home_productivity___1", "home_productivity___2", "home_productivity___3", "home_productivity___4", "home_productivity___5")), times = c(1,2,3,4,5), direction = "long")
-home_productive_dat
-
-
-colnames(home_productive_dat)[2:3] = c("type_productive", "home_productive")
-home_productive_dat$type_productive = as.factor(home_productive_dat$type_productive)
-
-home_productive_dat = home_productive_dat%>% group_by(state, type_productive) %>% 
-  count(home_productive)
-home_productive_dat
-
-home_productive_dat = subset(home_productive_dat, home_productive == 1)
-home_productive_dat$home_productive = NULL
-home_productive_dat
-home_productive_dat$percent = ifelse(home_productive_dat$state == "Indiana", home_productive_dat$n / n_state_home_productive$Indiana, ifelse(home_productive_dat$state == "Tennessee", home_productive_dat$n / n_state_home_productive$Tennessee, ifelse(home_productive_dat$state == "Illinois", home_productive_dat$n / n_state_home_productive$Illinois, ifelse(home_productive_dat$state == "Florida", home_productive_dat$n / n_state_home_productive$Florida, home_productive_dat$n / n_state_home_productive$Another.state))))
-home_productive_dat$percent = round(home_productive_dat$percent, 2)*100
-home_productive_dat$percent = paste0(home_productive_dat$percent, "%")
-home_productive_dat$type_productive = recode(home_productive_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I have poor internet/connection","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "Other")
-home_productive_dat
-
-home_productive_dat$state = ifelse(home_productive_dat$state == "Indiana", paste0(home_productive_dat$state, " ", "n=", n_state_home_productive$Indiana) , ifelse(home_productive_dat$state == "Tennessee", paste0(home_productive_dat$state, " ", "n=", n_state_home_productive$Tennessee), ifelse(home_productive_dat$state == "Illinois", paste0(home_productive_dat$state, " ", "n=", n_state_home_productive$Illinois), ifelse(home_productive_dat$state == "Florida", paste0(home_productive_dat$state, " ", "n=", n_state_home_productive$Florida), paste0(home_productive_dat$state, " ", "n=", n_state_home_productive$Another.state)))))
-home_productive_dat
-title_home_productive = paste0("What barriers do you have to working from home at full productivity?")
-
-home_productive_dat = home_productive_dat%>% group_by(state)
-
-table_home_productive = 
-  gt(home_productive_dat) %>%
-  tab_header(title = title_home_productive)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from home.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_home_productive
-gtsave(table_home_productive, "table_home_productive.png")
-```
-Home productivity overall
-```{r}
-home_productive_overall_dat = subset(tech_cri_dat_complete, situation == 1)
-home_productive_overall_dat = na.omit(data.frame(home_productive_overall_dat[,6:10], state = home_productive_overall_dat$state))
-
-n_home_productive_overall_dat = dim(home_productive_overall_dat)[1]
-
-home_productive_overall_dat = reshape(home_productive_overall_dat, varying = list(c("home_productivity___1", "home_productivity___2", "home_productivity___3", "home_productivity___4", "home_productivity___5")), times = c(1,2,3,4,5), direction = "long")
-
-
-
-colnames(home_productive_overall_dat)[2:3] = c("type_productive", "home_productive_overall")
-home_productive_overall_dat$type_productive = as.factor(home_productive_overall_dat$type_productive)
-
-home_productive_overall_dat = home_productive_overall_dat%>% group_by(type_productive) %>% 
-  count(home_productive_overall)
-home_productive_overall_dat
-
-home_productive_overall_dat = subset(home_productive_overall_dat, home_productive_overall == 1)
-home_productive_overall_dat$home_productive_overall = NULL
-home_productive_overall_dat$percent = home_productive_overall_dat$n / n_home_productive_overall_dat
-
-
-home_productive_overall_dat$percent = round(home_productive_overall_dat$percent, 2)*100
-home_productive_overall_dat$percent = paste0(home_productive_overall_dat$percent, "%")
-home_productive_overall_dat$type_productive = recode(home_productive_overall_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I have poor internet/connection","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "Other")
-home_productive_overall_dat
-
-
-home_productive_overall_dat = home_productive_overall_dat %>% ungroup()
-
-
-title_home_productive_overall = paste0("What barriers do you have to working from home at full productivity?", " ", "n=", n_home_productive_overall_dat)
-
-table_home_productive_overall = 
-  gt(home_productive_overall_dat) %>%
-  tab_header(title = title_home_productive_overall)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options, and stated they were working from home.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_home_productive_overall
-gtsave(table_home_productive_overall, "table_home_productive_overall.png")
-```
-
-
-Qualitative other barriers at home code later
-```{r echo=FALSE}
-other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
-write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
-### other_barriers_home_complete
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_barriers_home_complete_dat[,2:5]
-
-n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
-n_state_other_barriers = data.frame(n_state_other_barriers)
-n_state_other_barriers = n_state_other_barriers[1,]
-
-colnames(n_state_other_barriers) = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
-
-### Stack all the themes and keep the original n for the percentage what about state
-### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
-n_other_barriers = dim(other_barriers)[1]
-other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
-other_barriers_long_complete = na.omit(other_barriers_long)
-other_barriers_long_complete
-other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
-other_barriers_long_complete_results
-
-other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == 1, other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == 3, other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == 4, other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == 2, other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$`Another state`))))
-
-
-other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
-other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
-
-
-#1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
-
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$`Another state`)))))
-
-
-other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
-
-other_barriers_long_complete_results$state = factor(other_barriers_long_complete_results$state, levels = levels(other_barriers_long_complete_results$state)[5:1])
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
-#describe.factor(other_barriers_long_complete_results$state)
-colnames(other_barriers_long_complete_results)[2] = "Theme"
-title_other_barriers = paste0("Other barriers to working from home")
-table_other_barriers_home = 
-  gt(other_barriers_long_complete_results) %>%
-  tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Respondent answers can have multiple themes so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1)) %>%
-  cols_label(n = md("N"), percent = md("Percent"))
-table_other_barriers_home
-gtsave(table_other_barriers_home, "table_other_barriers_home.png") 
-```
-Other qualitative barriers overall
-```{r}
-other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
-write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
-### other_barriers_home_complete
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-overall_other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
-
-overall_other_barriers = overall_other_barriers_home_complete_dat[,3:5]
-
-n_overall_other_barriers_overall = dim(overall_other_barriers)[1]
-overall_other_barriers_long = reshape(overall_other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
-overall_other_barriers_long_complete = na.omit(overall_other_barriers_long)
-overall_other_barriers_long_complete
-overall_other_barriers_long_complete_results = overall_other_barriers_long_complete %>% count(Theme.1)
-overall_other_barriers_long_complete_results
-
-overall_other_barriers_long_complete_results$percent = overall_other_barriers_long_complete_results$n / n_overall_other_barriers_overall
-
-overall_other_barriers_long_complete_results$percent = round(overall_other_barriers_long_complete_results$percent, 2)*100
-overall_other_barriers_long_complete_results$percent = paste0(overall_other_barriers_long_complete_results$percent, "%")
-
-colnames(overall_other_barriers_long_complete_results)[1:2] = c("Theme", "n")
-title_overall_other_barriers = paste0("Other barriers to working from home", " ", "n=", n_overall_other_barriers_overall)
-
-overall_other_barriers_long_complete_results = overall_other_barriers_long_complete_results %>% ungroup()
-
-table_overall_other_barriers_home = 
-  gt(overall_other_barriers_long_complete_results) %>%
-  tab_header(title = title_overall_other_barriers)%>%
-  tab_footnote(footnote = "Respondent answers can have multiple themes so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other. Additionally, some respondents selected other, but did not write anything, so total other category may not add up to other category in previous table.",  locations = cells_body(columns = vars(Theme, n), rows = 1))
-table_overall_other_barriers_home
-gtsave(table_overall_other_barriers_home, "table_overall_other_barriers_home.png")
-```
-
-
-
-office_why
-I am working in the office because: 
-
-1, My job is essential and cannot be performed remotely | 2, I have poor internet/connection at home | 3, I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone) | 4, My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing) | 5, I am choosing (with leadership permission) to continue to work in the office
-```{r echo=FALSE}
-
-office_why_dat = subset(tech_cri_dat_complete, situation == 2)
-
-office_why_dat = na.omit(data.frame(office_why_dat[,12:16], state = office_why_dat$state))
-office_why_dat
-n_state_office_why = describe.factor(office_why_dat$state, decr.order = FALSE)
-n_state_office_why = data.frame(n_state_office_why)
-n_state_office_why = n_state_office_why[1,]
-n_state_office_why
-office_why_dat = reshape(office_why_dat, varying = list(c("office_why___1", "office_why___2", "office_why___3", "office_why___4", "office_why___5")), times = c(1,2,3,4,5), direction = "long")
-office_why_dat
-
-
-colnames(office_why_dat)[2:3] = c("type_productive", "office_why")
-office_why_dat$type_productive = as.factor(office_why_dat$type_productive)
-
-office_why_dat = office_why_dat%>% group_by(state, type_productive) %>% 
-  count(office_why)
-office_why_dat
-
-office_why_dat = subset(office_why_dat, office_why == 1)
-office_why_dat$office_why = NULL
-office_why_dat
-office_why_dat$percent = ifelse(office_why_dat$state == "Indiana", office_why_dat$n / n_state_office_why$Indiana, ifelse(office_why_dat$state == "Tennessee", office_why_dat$n / n_state_office_why$Tennessee, ifelse(office_why_dat$state == "Illinois", office_why_dat$n / n_state_office_why$Illinois, ifelse(office_why_dat$state == "Florida", office_why_dat$n / n_state_office_why$Florida, office_why_dat$n / n_state_office_why$Another.state))))
-office_why_dat$percent = round(office_why_dat$percent, 2)*100
-office_why_dat$percent = paste0(office_why_dat$percent, "%")
-office_why_dat$type_productive = recode(office_why_dat$type_productive, "1"= "My job is essential and cannot be performed remotely","2"= "I have poor internet/connection at home ","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "I am choosing (with leadership permission) to continue to work in the office")
-office_why_dat
-
-office_why_dat$state = ifelse(office_why_dat$state == "Indiana", paste0(office_why_dat$state, " ", "n=", n_state_office_why$Indiana) , ifelse(office_why_dat$state == "Tennessee", paste0(office_why_dat$state, " ", "n=", n_state_office_why$Tennessee), ifelse(office_why_dat$state == "Illinois", paste0(office_why_dat$state, " ", "n=", n_state_office_why$Illinois), ifelse(office_why_dat$state == "Florida", paste0(office_why_dat$state, " ", "n=", n_state_office_why$Florida), paste0(office_why_dat$state, " ", "n=", n_state_office_why$Another.state)))))
-office_why_dat
-title_office_why = paste0("I am working in the office because:")
-
-office_why_dat = office_why_dat%>% group_by(state)
-
-table_office_why = 
-  gt(office_why_dat) %>%
-  tab_header(title = title_office_why)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_office_why
-gtsave(table_office_why, "table_office_why.png")
-
-
-```
-Office why overall
-```{r}
-office_why_overall_dat = subset(tech_cri_dat_complete, situation == 2)
-office_why_overall_dat = na.omit(data.frame(office_why_overall_dat[,12:16], state = office_why_overall_dat$state))
-
-n_office_why_overall_dat = dim(office_why_overall_dat)[1]
-
-office_why_overall_dat = reshape(office_why_overall_dat, varying = list(c("office_why___1", "office_why___2", "office_why___3", "office_why___4", "office_why___5")), times = c(1,2,3,4,5), direction = "long")
-
-
-
-colnames(office_why_overall_dat)[2:3] = c("type_productive", "office_why_overall")
-office_why_overall_dat$type_productive = as.factor(office_why_overall_dat$type_productive)
-
-office_why_overall_dat = office_why_overall_dat%>% group_by(type_productive) %>% 
-  count(office_why_overall)
-office_why_overall_dat
-
-office_why_overall_dat = subset(office_why_overall_dat, office_why_overall == 1)
-office_why_overall_dat$office_why_overall = NULL
-office_why_overall_dat$percent = office_why_overall_dat$n / n_office_why_overall_dat
-
-
-office_why_overall_dat$percent = round(office_why_overall_dat$percent, 2)*100
-office_why_overall_dat$percent = paste0(office_why_overall_dat$percent, "%")
-office_why_overall_dat$type_productive = recode(office_why_overall_dat$type_productive, "1"= "My job is essential and cannot be performed remotely","2"= "I have poor internet/connection at home ","3"= "I lack enabling technology equipment", "4" = "My workspace is not ideal", "5" = "I am choosing (with leadership permission) to continue to work in the office")
-office_why_overall_dat
-
-
-office_why_overall_dat = office_why_overall_dat %>% ungroup()
-
-
-title_office_why_overall = paste0("I am working in the office because:", " ", "n=", n_office_why_overall_dat)
-
-table_office_why_overall = 
-  gt(office_why_overall_dat) %>%
-  tab_header(title = title_office_why_overall)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_office_why_overall
-gtsave(table_office_why_overall, "table_office_why_overall.png")
-```
-
-
-barriers_office
-n_why[2,1]
-1, I have no barriers and am working productively. | 2, I lack enabling technology equipment in the office (Examples: monitor, headset, webcam, phone | 3, Other
-```{r echo=FALSE}
-
-barriers_office_dat = subset(tech_cri_dat_complete, situation == 2)
-barriers_office_dat = na.omit(data.frame(barriers_office_dat[,17:19], state = barriers_office_dat$state))
-barriers_office_dat
-n_state_barriers_office = describe.factor(barriers_office_dat$state, decr.order = FALSE)
-n_state_barriers_office = data.frame(n_state_barriers_office)
-n_state_barriers_office = n_state_barriers_office[1,]
-n_state_barriers_office
-barriers_office_dat = reshape(barriers_office_dat, varying = list(c("barriers_office___1", "barriers_office___2", "barriers_office___3")), times = c(1,2,3), direction = "long")
-barriers_office_dat
-
-
-colnames(barriers_office_dat)[2:3] = c("type_productive", "barriers_office")
-barriers_office_dat$type_productive = as.factor(barriers_office_dat$type_productive)
-
-barriers_office_dat = barriers_office_dat%>% group_by(state, type_productive) %>% 
-  count(barriers_office)
-barriers_office_dat
-
-barriers_office_dat = subset(barriers_office_dat, barriers_office == 1)
-barriers_office_dat$barriers_office = NULL
-barriers_office_dat
-barriers_office_dat$percent = ifelse(barriers_office_dat$state == "Indiana", barriers_office_dat$n / n_state_barriers_office$Indiana, ifelse(barriers_office_dat$state == "Tennessee", barriers_office_dat$n / n_state_barriers_office$Tennessee, ifelse(barriers_office_dat$state == "Illinois", barriers_office_dat$n / n_state_barriers_office$Illinois, ifelse(barriers_office_dat$state == "Florida", barriers_office_dat$n / n_state_barriers_office$Florida, barriers_office_dat$n / n_state_barriers_office$Another.state))))
-barriers_office_dat$percent = round(barriers_office_dat$percent, 2)*100
-barriers_office_dat$percent = paste0(barriers_office_dat$percent, "%")
-
-barriers_office_dat$type_productive = recode(barriers_office_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I lack enabling technology equipment in the office", "3" = "Other")
-barriers_office_dat
-
-barriers_office_dat$state = ifelse(barriers_office_dat$state == "Indiana", paste0(barriers_office_dat$state, " ", "n=", n_state_barriers_office$Indiana) , ifelse(barriers_office_dat$state == "Tennessee", paste0(barriers_office_dat$state, " ", "n=", n_state_barriers_office$Tennessee), ifelse(barriers_office_dat$state == "Illinois", paste0(barriers_office_dat$state, " ", "n=", n_state_barriers_office$Illinois), ifelse(barriers_office_dat$state == "Florida", paste0(barriers_office_dat$state, " ", "n=", n_state_barriers_office$Florida), paste0(barriers_office_dat$state, " ", "n=", n_state_barriers_office$Another.state)))))
-barriers_office_dat
-title_barriers_office = paste0("What barriers if any do you have working in the office?")
-
-barriers_office_dat = barriers_office_dat%>% group_by(state)
-
-table_barriers_office = 
-  gt(barriers_office_dat) %>%
-  tab_header(title = title_barriers_office)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_barriers_office
-gtsave(table_barriers_office, "table_barriers_office.png")
-
-```
-Barriers barriers_office overall
-```{r}
-barriers_office_overall_dat = subset(tech_cri_dat_complete, situation == 2)
-barriers_office_overall_dat = na.omit(data.frame(barriers_office_overall_dat[,17:19], state = barriers_office_overall_dat$state))
-barriers_office_overall_dat
-
-n_barriers_office_overall_dat = dim(barriers_office_overall_dat)[1]
-
-barriers_office_overall_dat = reshape(barriers_office_overall_dat, varying = list(c("barriers_office___1", "barriers_office___2", "barriers_office___3")), times = c(1,2,3), direction = "long")
-
-
-
-colnames(barriers_office_overall_dat)[2:3] = c("type_productive", "barriers_office_overall")
-barriers_office_overall_dat$type_productive = as.factor(barriers_office_overall_dat$type_productive)
-
-barriers_office_overall_dat = barriers_office_overall_dat%>% group_by(type_productive) %>% 
-  count(barriers_office_overall)
-barriers_office_overall_dat
-
-barriers_office_overall_dat = subset(barriers_office_overall_dat, barriers_office_overall == 1)
-barriers_office_overall_dat$barriers_office_overall = NULL
-barriers_office_overall_dat
-barriers_office_overall_dat$percent = barriers_office_overall_dat$n / n_barriers_office_overall_dat
-
-
-barriers_office_overall_dat$percent = round(barriers_office_overall_dat$percent, 2)*100
-barriers_office_overall_dat$percent = paste0(barriers_office_overall_dat$percent, "%")
-
-barriers_office_overall_dat$type_productive = recode(barriers_office_overall_dat$type_productive, "1"= "I have no barriers and am working productively","2"= "I lack enabling technology equipment in the office", "3" = "Other")
-barriers_office_overall_dat
-
-title_barriers_office_overall = paste0("What barriers if any do you have working in the office?", " ", "n=", n_barriers_office_overall_dat)
-
-barriers_office_overall_dat = barriers_office_overall_dat%>% ungroup()
-
-table_barriers_office_overall = 
-  gt(barriers_office_overall_dat) %>%
-  tab_header(title = title_barriers_office_overall)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_barriers_office_overall
-gtsave(table_barriers_office_overall, "table_barriers_office_overall.png")
-```
-
-
-other_barriers_office
-Please describe the barriers.
-Code later
-Must be greater than 100 to code
-```{r echo=FALSE}
-length(tech_cri_dat_complete$other_barriers_office)-sum(is.na(tech_cri_dat_complete$other_barriers_office))
-
-```
-
-
-
-office_home_why
-I am working in the office some days because:
-1, Parts of my job cannot be performed remotely | 2, I am rotating with other staff covering office based tasks | 3, I have poor internet/connection at home and need to be on the network for my work. | 4, I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone). | 5, My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing) | 6, I am choosing (with leadership permission) to continue to work in the office part of the time.
-n_why[3,1]
-```{r echo=FALSE}
-
-office_home_why_dat = subset(tech_cri_dat_complete, situation == 3)
-office_home_why_dat = na.omit(data.frame(office_home_why_dat[,21:26], state = office_home_why_dat$state))
-office_home_why_dat
-n_state_office_home_why = describe.factor(office_home_why_dat$state, decr.order = FALSE)
-n_state_office_home_why = data.frame(n_state_office_home_why)
-n_state_office_home_why = n_state_office_home_why[1,]
-n_state_office_home_why
-office_home_why_dat = reshape(office_home_why_dat, varying = list(c("office_home_why___1", "office_home_why___2", "office_home_why___3", "office_home_why___4", "office_home_why___5", "office_home_why___6")), times = c(1:6), direction = "long")
-office_home_why_dat
-
-
-colnames(office_home_why_dat)[2:3] = c("type_productive", "office_home_why")
-office_home_why_dat$type_productive = as.factor(office_home_why_dat$type_productive)
-
-office_home_why_dat = office_home_why_dat%>% group_by(state, type_productive) %>% 
-  count(office_home_why)
-office_home_why_dat
-
-office_home_why_dat = subset(office_home_why_dat, office_home_why == 1)
-office_home_why_dat$office_home_why = NULL
-office_home_why_dat
-office_home_why_dat$percent = ifelse(office_home_why_dat$state == "Indiana", office_home_why_dat$n / n_state_office_home_why$Indiana, ifelse(office_home_why_dat$state == "Tennessee", office_home_why_dat$n / n_state_office_home_why$Tennessee, ifelse(office_home_why_dat$state == "Illinois", office_home_why_dat$n / n_state_office_home_why$Illinois, ifelse(office_home_why_dat$state == "Florida", office_home_why_dat$n / n_state_office_home_why$Florida, office_home_why_dat$n / n_state_office_home_why$Another.state))))
-office_home_why_dat$percent = round(office_home_why_dat$percent, 2)*100
-office_home_why_dat$percent = paste0(office_home_why_dat$percent, "%")
-
-office_home_why_dat$type_productive = recode(office_home_why_dat$type_productive, "1"= "Parts of my job cannot be performed remotely", "2"= "I am rotating with other staff covering office based tasks", "3"= "I have poor internet/connection at home and need to be on the network for my work","4"=  "I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone)", "5" ="My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing)", "6" = "I am choosing (with leadership permission) to continue to work in the office part of the time")
-office_home_why_dat
-
-office_home_why_dat$state = ifelse(office_home_why_dat$state == "Indiana", paste0(office_home_why_dat$state, " ", "n=", n_state_office_home_why$Indiana) , ifelse(office_home_why_dat$state == "Tennessee", paste0(office_home_why_dat$state, " ", "n=", n_state_office_home_why$Tennessee), ifelse(office_home_why_dat$state == "Illinois", paste0(office_home_why_dat$state, " ", "n=", n_state_office_home_why$Illinois), ifelse(office_home_why_dat$state == "Florida", paste0(office_home_why_dat$state, " ", "n=", n_state_office_home_why$Florida), paste0(office_home_why_dat$state, " ", "n=", n_state_office_home_why$Another.state)))))
-office_home_why_dat
-title_office_home_why = paste0("I am working in the office some days because:")
-
-office_home_why_dat = office_home_why_dat%>% group_by(state)
-
-table_office_home_why = 
-  gt(office_home_why_dat) %>%
-  tab_header(title = title_office_home_why)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office some days.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_office_home_why
-gtsave(table_office_home_why, "table_office_home_why.png")
-
-```
-Overall why_office_home
-```{r}
-office_home_why_dat = subset(tech_cri_dat_complete, situation == 3)
-office_home_why_dat = na.omit(data.frame(office_home_why_dat[,21:26], state = office_home_why_dat$state))
-office_home_why_dat
-n_office_home_why_dat = dim(office_home_why_dat)[1]
-
-office_home_why_dat = reshape(office_home_why_dat, varying = list(c("office_home_why___1", "office_home_why___2", "office_home_why___3", "office_home_why___4", "office_home_why___5", "office_home_why___6")), times = c(1:6), direction = "long")
-office_home_why_dat
-
-
-colnames(office_home_why_dat)[2:3] = c("type_productive", "office_home_why")
-office_home_why_dat$type_productive = as.factor(office_home_why_dat$type_productive)
-
-office_home_why_dat = office_home_why_dat%>% group_by(type_productive) %>% 
-  count(office_home_why)
-office_home_why_dat
-
-office_home_why_dat = subset(office_home_why_dat, office_home_why == 1)
-office_home_why_dat$office_home_why = NULL
-office_home_why_dat
-office_home_why_dat$percent = office_home_why_dat$n / n_office_home_why_dat
-office_home_why_dat$percent= round(office_home_why_dat$percent, 2)*100
-office_home_why_dat$percent = paste0(office_home_why_dat$percent, "%")
-
-
-office_home_why_dat$type_productive = recode(office_home_why_dat$type_productive, "1"= "Parts of my job cannot be performed remotely", "2"= "I am rotating with other staff covering office based tasks", "3"= "I have poor internet/connection at home and need to be on the network for my work","4"=  "I lack enabling technology equipment at home (Examples: monitor, headset, webcam, phone)", "5" ="My workspace is not ideal at home (lacks space, lacks privacy, inadequate furnishing)", "6" = "I am choosing (with leadership permission) to continue to work in the office part of the time")
-office_home_why_dat
-
-
-title_office_home_why = paste0("I am working in the office some days because:", " ", "n=", n_office_home_why_dat)
-
-office_home_why_dat = office_home_why_dat%>% ungroup()
-
-table_office_home_why = 
-  gt(office_home_why_dat) %>%
-  tab_header(title = title_office_home_why)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options, and stated they were working from the office some days.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_office_home_why
-gtsave(table_office_home_why, "table_office_home_why.png")
-```
-
-
-
-barriers_office_home
-What barriers if any do you have working in the office?
-1, I have no barriers and am working productively. | 2, I lack enabling technology equipment in the office (Examples: monitor, headset, webcam, phone | 3, Other
-n_why[3,1]
-```{r echo=FALSE}
-
-barriers_office_home_dat = subset(tech_cri_dat_complete, situation == 3)
-barriers_office_home_dat = na.omit(data.frame(barriers_office_home_dat[,27:29], state = barriers_office_home_dat$state))
-barriers_office_home_dat
-n_state_barriers_office_home = describe.factor(barriers_office_home_dat$state, decr.order = FALSE)
-n_state_barriers_office_home = data.frame(n_state_barriers_office_home)
-n_state_barriers_office_home = n_state_barriers_office_home[1,]
-n_state_barriers_office_home
-barriers_office_home_dat = reshape(barriers_office_home_dat, varying = list(c("barriers_office_home___1", "barriers_office_home___2", "barriers_office_home___3")), times = c(1:3), direction = "long")
-barriers_office_home_dat
-
-
-colnames(barriers_office_home_dat)[2:3] = c("type_productive", "barriers_office_home")
-barriers_office_home_dat$type_productive = as.factor(barriers_office_home_dat$type_productive)
-
-barriers_office_home_dat = barriers_office_home_dat%>% group_by(state, type_productive) %>% 
-  count(barriers_office_home)
-barriers_office_home_dat
-
-barriers_office_home_dat = subset(barriers_office_home_dat, barriers_office_home == 1)
-barriers_office_home_dat$barriers_office_home = NULL
-barriers_office_home_dat
-barriers_office_home_dat$percent = ifelse(barriers_office_home_dat$state == "Indiana", barriers_office_home_dat$n / n_state_barriers_office_home$Indiana, ifelse(barriers_office_home_dat$state == "Tennessee", barriers_office_home_dat$n / n_state_barriers_office_home$Tennessee, ifelse(barriers_office_home_dat$state == "Illinois", barriers_office_home_dat$n / n_state_barriers_office_home$Illinois, ifelse(barriers_office_home_dat$state == "Florida", barriers_office_home_dat$n / n_state_barriers_office_home$Florida, barriers_office_home_dat$n / n_state_barriers_office_home$Another.state))))
-barriers_office_home_dat$percent = round(barriers_office_home_dat$percent, 2)*100
-barriers_office_home_dat$percent = paste0(barriers_office_home_dat$percent, "%")
-
-barriers_office_home_dat$type_productive = recode(barriers_office_home_dat$type_productive, "1"= "I have no barriers and am working productively.", "2"= "I lack enabling technology equipment in the office", "3"= "Other")
-barriers_office_home_dat
-
-barriers_office_home_dat$state = ifelse(barriers_office_home_dat$state == "Indiana", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Indiana) , ifelse(barriers_office_home_dat$state == "Tennessee", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Tennessee), ifelse(barriers_office_home_dat$state == "Illinois", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Illinois), ifelse(barriers_office_home_dat$state == "Florida", paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Florida), paste0(barriers_office_home_dat$state, " ", "n=", n_state_barriers_office_home$Another.state)))))
-barriers_office_home_dat
-title_barriers_office_home = paste0("What barriers if any do you have working in the office some days?")
-
-barriers_office_home_dat = barriers_office_home_dat%>% group_by(state)
-
-table_barriers_office_home = 
-  gt(barriers_office_home_dat) %>%
-  tab_header(title = title_barriers_office_home)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office some days.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_barriers_office_home
-gtsave(table_barriers_office_home, "table_barriers_office_home.png")
-```
-other_barriers_office_home
-Please describe the other barriers.
-Code later
-```{r echo=FALSE}
-
-length(tech_cri_dat_complete$other_barriers_office_home)-sum(is.na(tech_cri_dat_complete$other_barriers_office_home))
-```
-Overall barriers_office_home
-```{r}
-barriers_office_home_dat = subset(tech_cri_dat_complete, situation == 3)
-barriers_office_home_dat = na.omit(data.frame(barriers_office_home_dat[,27:29], state = barriers_office_home_dat$state))
-barriers_office_home_dat
-n_barriers_office_home_dat = dim(barriers_office_home_dat)[1]
-barriers_office_home_dat = reshape(barriers_office_home_dat, varying = list(c("barriers_office_home___1", "barriers_office_home___2", "barriers_office_home___3")), times = c(1:3), direction = "long")
-barriers_office_home_dat
-
-
-colnames(barriers_office_home_dat)[2:3] = c("type_productive", "barriers_office_home")
-barriers_office_home_dat$type_productive = as.factor(barriers_office_home_dat$type_productive)
-
-barriers_office_home_dat = barriers_office_home_dat%>% group_by(type_productive) %>% 
-  count(barriers_office_home)
-barriers_office_home_dat
-
-barriers_office_home_dat = subset(barriers_office_home_dat, barriers_office_home == 1)
-barriers_office_home_dat$barriers_office_home = NULL
-barriers_office_home_dat
-barriers_office_home_dat$percent = barriers_office_home_dat$n / n_barriers_office_home_dat
-barriers_office_home_dat$percent = round(barriers_office_home_dat$percent, 2)*100
-barriers_office_home_dat$percent = paste0(barriers_office_home_dat$percent, "%")
-barriers_office_home_dat
-
-barriers_office_home_dat$type_productive = recode(barriers_office_home_dat$type_productive, "1"= "I have no barriers and am working productively.", "2"= "I lack enabling technology equipment in the office", "3"= "Other")
-barriers_office_home_dat
-
-title_barriers_office_home = paste0("What barriers if any do you have working in the office some days?", " ", "n=", n_barriers_office_home_dat)
-
-barriers_office_home_dat = barriers_office_home_dat%>% ungroup()
-
-table_barriers_office_home = 
-  gt(barriers_office_home_dat) %>%
-  tab_header(title = title_barriers_office_home)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options, and stated they were working from the office some days.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_barriers_office_home
-gtsave(table_barriers_office_home, "table_barriers_office_home.png")
-```
-
-
-#############
-not_working_why
-Only two responses makes sense, because people not working are not checking their email.
-#####################
-
-service_provided
-Which of Centerstone's televideo or teleaudio services have you provided to client(s)? (please check all that apply)
-1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
-
-Fine to have tech_cri_dat_complete instead of clincian_survey_dat, becuase if you were not eligible for this survey you got a zero and I am counting the number of 1's and dividing by the number in the clincian survey
-```{r echo=FALSE}
-
-service_provided = tech_cri_dat_complete[,36:41]
-service_provided = apply(service_provided, 2, sum)
-service_provided = data.frame(service_provided)
-service_provided$percent = service_provided$service_provided / n_clinician_survey
-service_provided
-response_options =  c("Telephone only", "Zoom video and audio", "Zoom audio only", "SnapMD video and audio", "SnapMD audio only", "I do not provide televideo or teleaudio services")
-service_provided = data.frame(response_options, service_provided)
-rownames(service_provided) = NULL
-colnames(service_provided)[2] = "count"
-service_provided$percent = round(service_provided$percent,2)
-service_provided$percent = paste0(service_provided$percent*100, "%")
-service_provided = service_provided[order(service_provided$count,decreasing = TRUE),]
-service_provided
-title_service_provided = paste0("Which of Centerstone's televideo or teleaudio services have you provided to client(s)?", " ", "n=", n_clinician_survey)
-table_service_provided = 
-  gt(service_provided) %>%
-  tab_header(title = title_service_provided)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_service_provided
-gtsave(table_service_provided, "table_service_provided.png")
-```
-barriers_snap_md_use
-We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply. 
-1, Difficulty developing treatment plans | 2, Difficulty coordinating services across multiple providers | 3, Client's limited access to technology | 4, Client's limited access to private space | 5, Lack of clear policies for conducting televideo / teleaudio | 6, Lack of security for conducting televideo / teleaudio | 7, Decreased rapport with client(s) | 8, Difficulty gathering data from client(s) | 9, Difficulty accessing client(s) information | 10, Clients are uncomfortable with the technology | 11, Lack of training opportunities | 12, Other barriers not listed above
+instructions overall
+Were the instructions for how to access your appointment online clear?
+1, Very Clear | 2, Mostly Clear | 3, Somewhat Clear | 4, Not at all Clear | 5, Not Applicable
 
 ```{r}
-barriers_snap_md_use = tech_cri_dat_complete[,42:53]
-barriers_snap_md_use = apply(barriers_snap_md_use, 2, sum)
-barriers_snap_md_use = data.frame(barriers_snap_md_use)
-barriers_snap_md_use$percent = barriers_snap_md_use$barriers_snap_md_use / n_snap_md
-barriers_snap_md_use
-response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
-barriers_snap_md_use = data.frame(response_options, barriers_snap_md_use)
-rownames(barriers_snap_md_use) = NULL
-colnames(barriers_snap_md_use)[2] = "count"
-barriers_snap_md_use$percent = round(barriers_snap_md_use$percent,2)
-barriers_snap_md_use$percent = paste0(barriers_snap_md_use$percent*100, "%")
-write.csv(barriers_snap_md_use, "barriers_snap_md_use.csv", row.names = FALSE)
-barriers_snap_md_use
-barriers_snap_md_use = barriers_snap_md_use[order(barriers_snap_md_use$count,decreasing = TRUE),]
+instructions_overall_dat = tele_zoom_dat_complete
 
-title_barriers_snap_md_use = paste0("We are wondering if there are barriers to using SnapMD?  If there are, please check all that apply.", " ", "n=", n_snap_md)
-table_barriers_snap_md_use = 
-  gt(barriers_snap_md_use) %>%
-  tab_header(title = title_barriers_snap_md_use)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_barriers_snap_md_use
-gtsave(table_barriers_snap_md_use, "table_barriers_snap_md_use.png")
+describe.factor(tele_zoom_dat_complete$instructions)
+
+
+instructions_overall_dat = na.omit(data.frame(instructions_overall = tele_zoom_dat_complete$instructions))
+n_instructions_overall = dim(instructions_overall_dat)[1]
+
+instructions_overall_dat$instructions_overall = recode(instructions_overall_dat$instructions_overall, "1" = "Very Clear", "2" = "Mostly Clear", "3" = "Somewhat Clear", "4" = "Not at all Clear", "5" = "Not Applicable")
+
+## relevel them
+instructions_overall_dat$instructions_overall = as.factor(instructions_overall_dat$instructions_overall)
+instructions_overall_dat$instructions_overall = factor(instructions_overall_dat$instructions_overall, levels = c("Very Clear","Mostly Clear", "Somewhat Clear", "Not at all Clear", "Not Applicable"))
+
+instructions_overall_dat = instructions_overall_dat %>% count(instructions_overall)
+
+instructions_overall_dat$percent = as.numeric(instructions_overall_dat$n / n_instructions_overall)
+
+
+
+### Create extra annotation
+greater_instructions_overall = paste0(round(sum(instructions_overall_dat$percent[1:2]),2)*100, "%")
+greater_instructions_overall_text = paste0("% who found instructions very or mostly clear", " ", "=", " ", greater_instructions_overall)
+
+grob <- grobTree(textGrob(greater_instructions_overall_text, x=0.05,  y=0.80, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
+
+##############
+
+instructions_overall_dat$percent = round(instructions_overall_dat$percent, 2)*100
+instructions_overall_dat$percent = paste0(instructions_overall_dat$percent, "%")
+title_instructions_overalll = paste0("Were the instructions for how to access your appointment online clear?", " ", "n=", n_instructions_overall)
+
+
+
+plot_instructions_overall = ggplot(instructions_overall_dat, aes(x = instructions_overall,y =n, fill = instructions_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_instructions_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")+
+  annotation_custom(grob)
+plot_instructions_overall
 
 ```
-other_snap_barriers_use
-Please list the other barrier(s).
-Code later
+quick overall
+Were you satisfied with how quickly you got an appointment?
+1, Very Satisfied | 2, Mostly Satisfied | 3, Somewhat Satisfied | 4, Not Satisfied | 5, Not Applicable
+
 ```{r}
+quick_overall_dat = tele_zoom_dat_complete
 
+describe.factor(tele_zoom_dat_complete$quick)
+
+
+quick_overall_dat = na.omit(data.frame(quick_overall = tele_zoom_dat_complete$quick))
+n_quick_overall = dim(quick_overall_dat)[1]
+
+quick_overall_dat$quick_overall = recode(quick_overall_dat$quick_overall, "1" = "Very Satisfied", "2" = "Mostly Satisfied", "3" = "Somewhat Satisfied", "4" = "Not Satisfied", "5" = "Not Applicable")
+
+## relevel them
+quick_overall_dat$quick_overall = as.factor(quick_overall_dat$quick_overall)
+quick_overall_dat$quick_overall = factor(quick_overall_dat$quick_overall, levels = c("Very Satisfied","Mostly Satisfied", "Somewhat Satisfied", "Not Satisfied", "Not Applicable"))
+
+quick_overall_dat = quick_overall_dat %>% count(quick_overall)
+
+quick_overall_dat$percent = as.numeric(quick_overall_dat$n / n_quick_overall)
+
+greater_quick_overall = paste0(round(sum(quick_overall_dat$percent[1:2]),2)*100, "%")
+greater_quick_overall_text = paste0("% who were very or mostly satisfied", " ", "=", " ", greater_quick_overall)
+
+grob <- grobTree(textGrob(greater_quick_overall_text, x=0.05,  y=0.95, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
+
+
+quick_overall_dat$percent = round(quick_overall_dat$percent, 2)*100
+quick_overall_dat$percent = paste0(quick_overall_dat$percent, "%")
+title_quick_overalll = paste0("Were you satisfied with how quickly you got an appointment?", " ", "n=", n_quick_overall)
+
+plot_quick_overall = ggplot(quick_overall_dat, aes(x = quick_overall,y =n, fill = quick_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_quick_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")+
+  annotation_custom(grob)
+plot_quick_overall
 ```
-
-
-facilitate_snapmd
-We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.
-1, Increased work life balance | 2, Decreased commute time | 3, Increased schedule flexibility | 4, Increased access to difficult to reach clients | 5, Quicker access to clients | 6, Increased convenience | 7, Other factors not listed above
-```{r echo=FALSE}
-facilitate_snapmd = tech_cri_dat_complete[,55:61]
-facilitate_snapmd = apply(facilitate_snapmd, 2, sum)
-facilitate_snapmd = data.frame(facilitate_snapmd)
-facilitate_snapmd$percent = facilitate_snapmd$facilitate_snapmd / n_snap_md
-facilitate_snapmd
-response_options =  c("Increased work life balance", "Decreased commute time", "Increased schedule flexibility", "Increased access to difficult to reach clients", "Quicker access to clients", "Increased convenience", "Other factors not listed above")
-facilitate_snapmd = data.frame(response_options, facilitate_snapmd)
-rownames(facilitate_snapmd) = NULL
-colnames(facilitate_snapmd)[2] = "count"
-facilitate_snapmd$percent = round(facilitate_snapmd$percent,2)
-facilitate_snapmd$percent = paste0(facilitate_snapmd$percent*100, "%")
-
-facilitate_snapmd = facilitate_snapmd[order(facilitate_snapmd$count,decreasing = TRUE),]
-title_facilitate_snapmd = paste0("We are wondering if SnapMD makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", n_snap_md)
-table_facilitate_snapmd = 
-  gt(facilitate_snapmd) %>%
-  tab_header(title = title_facilitate_snapmd)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they used SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_facilitate_snapmd
-gtsave(table_facilitate_snapmd, "table_facilitate_snapmd.png")
-
-```
-
-other_facilitate_snapmd
-Not needed only 9 responses
-
-barriers_zoom_use
-We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.
-```{r echo=FALSE}
-barriers_zoom_use = tech_cri_dat_complete[,63:74]
-#barriers_zoom_use = apply(barriers_zoom_use, 2, as.factor)
-barriers_zoom_use = apply(barriers_zoom_use, 2, sum)
-barriers_zoom_use = data.frame(barriers_zoom_use)
-barriers_zoom_use$percent = barriers_zoom_use$barriers_zoom_use / n_zoom
-barriers_zoom_use
-response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
-barriers_zoom_use = data.frame(response_options, barriers_zoom_use)
-rownames(barriers_zoom_use) = NULL
-colnames(barriers_zoom_use)[2] = "count"
-barriers_zoom_use$percent = round(barriers_zoom_use$percent,2)
-barriers_zoom_use$percent = paste0(barriers_zoom_use$percent*100, "%")
-barriers_zoom_use = barriers_zoom_use[order(barriers_zoom_use$count,decreasing = TRUE),]
-barriers_zoom_use
-
-title_barriers_zoom_use = paste0("We are wondering if there are barriers to using Zoom?  If there are, please check all that apply.", " ", "n=", n_zoom)
-table_barriers_zoom_use = 
-  gt(barriers_zoom_use) %>%
-  tab_header(title = title_barriers_zoom_use)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they used Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_barriers_zoom_use
-gtsave(table_barriers_zoom_use, "table_barriers_zoom_use.png")
-
-```
-other_zoom_barriers_use
-Please list the other barrier(s).
-Code this one
-
-Cat 
-```{r}
-
-
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_zoom_use_complete_dat = read.csv("other_zoom_barriers_use_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_zoom_use_complete_dat[,2:5]
-
-n_other_barriers = dim(other_barriers)[1]
-other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
-other_barriers_long_complete = na.omit(other_barriers_long)
-other_barriers_long_complete
-other_barriers_long_complete_results = other_barriers_long_complete %>% count(Theme.1)
-other_barriers_long_complete_results
-other_barriers_long_complete_results$percent = other_barriers_long_complete_results$n / n_other_barriers
-
-other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
-other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
-
-
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(-other_barriers_long_complete_results$n),]
-#describe.factor(other_barriers_long_complete_results$state)
-colnames(other_barriers_long_complete_results)[1:2] = c("Theme", "n")
-title_other_barriers = paste0("Other barriers to using Zoom")
-table_other_zoom_use = 
-  gt(other_barriers_long_complete_results) %>%
-  tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they used Zoom audio and or Zoom audio and video, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_zoom_use
-gtsave(table_other_zoom_use, "table_other_zoom_use.png")
-```
-
-facilitate_zoom
-We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.
-```{r echo=FALSE}
-facilitate_zoom = tech_cri_dat_complete[,76:82]
-facilitate_zoom = apply(facilitate_zoom, 2, sum)
-facilitate_zoom = data.frame(facilitate_zoom)
-facilitate_zoom$percent = facilitate_zoom$facilitate_zoom / n_zoom
-facilitate_zoom
-response_options =  c("Increased work life balance", "Decreased commute time", "Increased schedule flexibility", "Increased access to difficult to reach clients", "Quicker access to clients", "Increased convenience", "Other factors not listed above")
-facilitate_zoom = data.frame(response_options, facilitate_zoom)
-rownames(facilitate_zoom) = NULL
-colnames(facilitate_zoom)[2] = "count"
-facilitate_zoom$percent = round(facilitate_zoom$percent,2)
-facilitate_zoom$percent = paste0(facilitate_zoom$percent*100, "%")
-
-facilitate_zoom = facilitate_zoom[order(facilitate_zoom$count,decreasing = TRUE),]
-
-title_facilitate_zoom = paste0("We are wondering if Zoom makes it easier to provide services to clients relative to in person?  If it does, please check all that apply.", " ", "n=", n_zoom)
-table_facilitate_zoom = 
-  gt(facilitate_zoom) %>%
-  tab_header(title = title_facilitate_zoom)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they used Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_facilitate_zoom
-gtsave(table_facilitate_zoom, "table_facilitate_zoom.png")
-```
-other_facilitate_zoom
-```{r}
-length(tech_cri_dat_complete$other_facilitate_zoom) - sum(is.na(tech_cri_dat_complete$other_facilitate_zoom))
-
-```
-
-barriers_snap_md
-Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)
-n = service_provided[c(1:3,6),2]
-Not SnapMD selected
-```{r echo=FALSE}
-
-barriers_snap_md = subset(clincian_survey_dat, service_provided___4 == 0 & service_provided___5 == 0)
-barriers_snap_md = barriers_snap_md[,84:95]
-barriers_snap_md = apply(barriers_snap_md, 2, sum)
-barriers_snap_md = data.frame(barriers_snap_md)
-barriers_snap_md$percent = barriers_snap_md$barriers_snap_md / n_no_snap_md
-barriers_snap_md
-response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
-barriers_snap_md = data.frame(response_options, barriers_snap_md)
-rownames(barriers_snap_md) = NULL
-colnames(barriers_snap_md)[2] = "count"
-barriers_snap_md$percent = round(barriers_snap_md$percent,2)
-barriers_snap_md$percent = paste0(barriers_snap_md$percent*100, "%")
-
-barriers_snap_md = barriers_snap_md[order(barriers_snap_md$count,decreasing = TRUE),]
-
-title_barriers_snap_md = paste0("Since you did not select SnapMD, we are wondering, what are the barriers to using SnapMD? (please check all that apply)", " ", "n=", n_no_snap_md)
-table_barriers_snap_md = 
-  gt(barriers_snap_md) %>%
-  tab_header(title = title_barriers_snap_md)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  The n is the total number of clinicians who said they did not use SnapMD video and audio or SnapMD audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_barriers_snap_md
-
-gtsave(table_barriers_snap_md, "table_barriers_snap_md.png")
-
-```
-
-
-other_snap_barriers
-Other barriers not listed above
-Jess
-Correct Jess's codes
-Need to match what she did with the correct sample 
-```{r}
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-combine_correct_other_snap_barriers = read.csv("combine_correct_other_snap_barriers.csv", header = TRUE)
-combine_correct_other_snap_barriersdup =  duplicated(combine_correct_other_snap_barriers$other_snap_barriers)
-combine_correct_other_snap_barriers = subset(combine_correct_other_snap_barriers, dup == FALSE)
-write.csv(combine_correct_other_snap_barriers, "correct_snap_other_barriers.csv", row.names = FALSE)
-```
-
-Other barriers working from home
-```{r}
-##############################################################
-# Replace the code below later
-##############################################################
-other_barriers_home_complete =  na.omit(data.frame(other_barriers_home = tech_cri_dat_complete$other_barriers_home, state = tech_cri_dat_complete$state))
-write.csv(other_barriers_home_complete, "other_barriers_home_complete.csv", row.names = FALSE)
-### other_barriers_home_complete
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-other_barriers_home_complete_dat = read.csv("other_barriers_home_complete_dat.csv", header = TRUE, na.strings = "")
-other_barriers = other_barriers_home_complete_dat[,2:5]
-install.packages("prettyR")
-library(prettyR)
-n_state_other_barriers = describe.factor(other_barriers$state, decr.order = FALSE)
-n_state_other_barriers = data.frame(n_state_other_barriers)
-n_state_other_barriers = n_state_other_barriers[1,]
-
-colnames(n_state_other_barriers) = c("Indiana", "Florida", "Tennessee", "Illinois", "Another state")
-
-### Stack all the themes and keep the original n for the percentage what about state
-### datPrePost3month = reshape(datPrePost3month, varying  = list(c("Sec1Qa.x", "Sec1Qa.y", "Sec1Qa"), direction = "long", times =c(0,1,2))
-n_other_barriers = dim(other_barriers)[1]
-other_barriers_long = reshape(other_barriers, varying = list(c("Theme.1", "Theme.2", "Theme.3")), direction  = "long", times = c(1,2,3))
-other_barriers_long_complete = na.omit(other_barriers_long)
-other_barriers_long_complete
-other_barriers_long_complete_results = other_barriers_long_complete%>% group_by(state) %>% count(Theme.1)
-other_barriers_long_complete_results
-
-other_barriers_long_complete_results$percent = ifelse(other_barriers_long_complete_results$state == 1, other_barriers_long_complete_results$n / n_state_other_barriers$Indiana, ifelse(other_barriers_long_complete_results$state == 3, other_barriers_long_complete_results$n / n_state_other_barriers$Tennessee, ifelse(other_barriers_long_complete_results$state == 4, other_barriers_long_complete_results$n / n_state_other_barriers$Illinois, ifelse(other_barriers_long_complete_results$state == 2, other_barriers_long_complete_results$n / n_state_other_barriers$Florida, other_barriers_long_complete_results$n / n_state_other_barriers$`Another state`))))
-
-
-other_barriers_long_complete_results$percent = round(other_barriers_long_complete_results$percent, 2)*100
-other_barriers_long_complete_results$percent = paste0(other_barriers_long_complete_results$percent, "%")
-
-
-#1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == 1, "Indiana", ifelse(other_barriers_long_complete_results$state == 2, "Florida", ifelse(other_barriers_long_complete_results$state == 3, "Tennessee", ifelse(other_barriers_long_complete_results$state == 4, "Illinois", ifelse(other_barriers_long_complete_results$state == 5, "Another state", "Wrong")))))
-
-other_barriers_long_complete_results$state = ifelse(other_barriers_long_complete_results$state == "Indiana", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Indiana) , ifelse(other_barriers_long_complete_results$state == "Tennessee", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Tennessee), ifelse(other_barriers_long_complete_results$state == "Illinois", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Illinois), ifelse(other_barriers_long_complete_results$state == "Florida", paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$Florida), paste0(other_barriers_long_complete_results$state, " ", "n=", n_state_other_barriers$`Another state`)))))
-
-
-other_barriers_long_complete_results$state = as.factor(other_barriers_long_complete_results$state)
-
-other_barriers_long_complete_results$state = factor(other_barriers_long_complete_results$state, levels = levels(other_barriers_long_complete_results$state)[5:1])
-other_barriers_long_complete_results = other_barriers_long_complete_results[order(other_barriers_long_complete_results$state),]
-#describe.factor(other_barriers_long_complete_results$state)
-colnames(other_barriers_long_complete_results)[2] = "Theme"
-title_other_barriers = paste0("Other barriers to working from home")
-table_other_barriers_home = 
-  gt(other_barriers_long_complete_results) %>%
-  tab_header(title = title_other_barriers)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, stated they were working from home, and selected other.",  locations = cells_body(columns = vars(percent, n), rows = 1))
-table_other_barriers_home
-gtsave(table_other_barriers_home, "table_other_barriers_home.png")
-
-```
-other_home_barriers overall
-
-
-barriers_zoom
-Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)
-### Messed up skip logic
-Need to subset for those who selected Zoom options
-1, Telephone only | 2, Zoom video and audio | 3, Zoom audio only | 4, SnapMD video and audio | 5, SnapMD audio only | 6, I do not provide televideo or teleaudio services
-
-
-
-```{r echo=FALSE}
-
-sum(tech_cri_dat_complete$barriers_zoom___3)
-barriers_zoom = subset(clincian_survey_dat, service_provided___2 == 0 & service_provided___3 == 0)
-dim(barriers_zoom)
-barriers_zoom = barriers_zoom[,97:108]
-
-barriers_zoom = apply(barriers_zoom, 2, sum)
-barriers_zoom = data.frame(barriers_zoom)
-barriers_zoom$percent = barriers_zoom$barriers_zoom / n_no_zoom
-barriers_zoom
-response_options =  c("Difficulty developing treatment plans", "Difficulty coordinating services across multiple providers", "Client's limited access to technology", "Client's limited access to private space", "Lack of clear policies for conducting televideo / teleaudio", "Lack of security for conducting televideo / teleaudio", "Decreased rapport with client(s)", "Difficulty gathering data from client(s)", "Difficulty accessing client(s) information", "Clients are uncomfortable with the technology", "Lack of training opportunities", "Other barriers not listed above")
-barriers_zoom = data.frame(response_options, barriers_zoom)
-rownames(barriers_zoom) = NULL
-colnames(barriers_zoom)[2] = "count"
-barriers_zoom$percent = round(barriers_zoom$percent,2)
-barriers_zoom$percent = paste0(barriers_zoom$percent*100, "%")
-
-
-barriers_zoom = barriers_zoom[order(barriers_zoom$count,decreasing = TRUE),]
-
-title_barriers_zoom = paste0("Since you did not select Zoom, we are wondering, what are the barriers to using Zoom? (please check all that apply)", " ", "n=", n_no_zoom)
-table_barriers_zoom = 
-  gt(barriers_zoom) %>%
-  tab_header(title = title_barriers_zoom)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%. The n is the total number of clinicians who said they did not use Zoom video and audio or Zoom audio only.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_barriers_zoom
-gtsave(table_barriers_zoom, "table_barriers_zoom.png")
-```
-other_zoom_barriers
-Please list the other barrier(s).
-Code later
-```{r}
-length(tech_cri_dat_complete$other_zoom_barriers) - sum(is.na(tech_cri_dat_complete$other_zoom_barriers))
-
-```
-
-
-communicate
-Televideo has helped me communicate with my client(s).
-1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
-
-Let's do an average score and then plot by all four of them
+communicate overall
+manage
+recovery
+1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree
 ```{r}
 ### Client survey data
 #clincian_survey_dat
-telehealth_sat_dat = clincian_survey_dat
-n_telehealth_sat_dat = dim(telehealth_sat_dat)[1]
-## Subset 6, because you are a dumbass!!!!  6 = N/A
-telehealth_sat_dat = telehealth_sat_dat[,110:113]
-telehealth_sat_dat[telehealth_sat_dat == 6] = NA
-telehealth_sat_p = telehealth_sat_dat
-apply(telehealth_sat_dat, 2, range, na.rm = TRUE)
-telehealth_sat_dat = data.frame(telehealth_sat = telehealth_sat_dat)
-telehealth_sat_dat = apply(telehealth_sat_dat, 2, mean, na.rm = TRUE)
-telehealth_sat_dat = round(telehealth_sat_dat,2)
-telehealth_sat_dat = data.frame(telehealth_sat_dat)
-var_names = c("communicate", "substance", "manage", "recovery")
-telehealth_sat_dat = data.frame(var_names, telehealth_sat_dat)
-rownames(telehealth_sat_dat) = NULL
-telehealth_sat_dat
+
+sat_overall_dat = tele_zoom_dat_complete
+
+### 6 means not applicible for substance so we are assuming they are 0 which means they do not agree or greater
+sat_overall_dat = sat_overall_dat[,c(8,10,11)]
+sat_overall_dat = na.omit(sat_overall_dat)
+n_sat_overall_dat = dim(sat_overall_dat)[1]
+sat_overall_dat = apply(sat_overall_dat, 2, function(x){ifelse(x > 3, 1, 0)})
+sat_overall_dat = data.frame(sat_overall_dat)
+sat_overall_dat = apply(sat_overall_dat, 2, sum)
+percent_sat_overall = paste0(round(sat_overall_dat / n_sat_overall_dat,2)*100, "%")
+sat_overall_dat = data.frame(sat_overall_dat, percent_sat_overall)
+var_names_sat_overall = row.names(sat_overall_dat)
+sat_overall_dat$var_names_sat_overall = var_names_sat_overall
+rownames(sat_overall_dat) = NULL
 ## Get rid of total
-title_telehealth_sat = paste0("Televideo satisfaction", " ", "n=", n_telehealth_sat_dat)
-plot_telehealth_sat = ggplot(telehealth_sat_dat, aes(x = var_names,y = telehealth_sat_dat, fill = telehealth_sat_dat))+
+title_sat_overall = paste0("Count and % agree or greater televideo satisfaction", " ", "n=", n_sat_overall_dat)
+plot_telehealth_sat = ggplot(sat_overall_dat, aes(x = var_names_sat_overall,y = sat_overall_dat, fill = var_names_sat_overall))+
   geom_bar(stat = "identity")+
-  labs(title=title_telehealth_sat, x ="Outcome", y = "Average rating")+
-  scale_y_continuous(limits = c(0,5))+
+  labs(title=title_sat_overall, x ="Dimension of satisfaction", y = "Count of clients agree or greater")+
+  scale_y_continuous(limits = c(0,400))+
   labs(fill = "")+
-  geom_text(aes(label = telehealth_sat_dat), position=position_dodge(width=0.9), vjust=-0.25)+
+  geom_text(aes(label = percent_sat_overall), position=position_dodge(width=0.9), vjust=-0.25)+
   theme(legend.position = "none")
 plot_telehealth_sat
 
-telehealth_sat_p = apply(telehealth_sat_p, 2, function(x){ifelse(x > 3,1,0)})
-telehealth_sat_p
-telehealth_sat_p = data.frame(telehealth_sat_p)
-telehealth_sat_p_complete = na.omit(telehealth_sat_p)
-n_telehealth_sat_p_complete  = dim(telehealth_sat_p_complete)[1]
-telehealth_sat_p_complete_n = apply(telehealth_sat_p_complete, 2, sum)
-telehealth_sat_p_complete_p = round(telehealth_sat_p_complete_n/n_telehealth_sat_p_complete,2)
-telehealth_sat_p_complete = rbind(telehealth_sat_p_complete_n, telehealth_sat_p_complete_p)
-rownames(telehealth_sat_p_complete) = c("n", "%")
-telehealth_sat_p_complete
 ```
-comfort_televideo
-What is your level of comfort with televideo?
-1, Very uncomfortable | 2, Uncomfortable | 3, Somewhat uncomfortable | 4, Neither uncomfortable nor comfortable | 5, Somewhat comfortable | 6, Comfortable | 7, Very comfortable
+communicate overall
+manage
+recovery
+1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree
 ```{r}
-
 ### Client survey data
 #clincian_survey_dat
-comfort_televideo_dat = na.omit(clincian_survey_dat$comfort_televideo)
-comfort_televideo_dat = data.frame(comfort_televideo = comfort_televideo_dat)
-n_comfort_televideo_dat = dim(comfort_televideo_dat)[1]
 
-library(descr)
-library(installr)
-uninstall.packages("questionr")
-uninstall.packages("frequency")
-uninstall.packages("prettyR")
-comfort_televideo_dat = data.frame(freq(comfort_televideo_dat$comfort_televideo))
+sub_overall_dat = tele_zoom_dat_complete
+
+sub_overall_dat = sub_overall_dat[,c(9)]
+sub_overall_dat = na.omit(sub_overall_dat)
+### Subset 6
+sub_overall_dat = subset(sub_overall_dat, sub_overall_dat != 6)
+sub_overall_dat
+n_sub_overall_dat = length(sub_overall_dat)
+
+sub_overall_dat = ifelse(sub_overall_dat > 3, 1, 0)
+sub_overall_dat = sum(sub_overall_dat)
+percent_sub_overall = paste0(round(sub_overall_dat / n_sub_overall_dat,2)*100, "%")
+sub_overall_dat = data.frame(sub_overall_dat, percent_sub_overall)
+sub_overall_dat$var_names_sub_overall = "substance"
+
 ## Get rid of total
-
-comfort_televideo_dat = comfort_televideo_dat[-8,]
-var_names =  rownames(comfort_televideo_dat)
-comfort_televideo_dat$var_names = var_names
-typeof(comfort_televideo_dat$Frequency)
-comfort_televideo_dat$Percent = round(comfort_televideo_dat$Percent,0)
-greater_comfort = sum(comfort_televideo_dat$Percent[5:7])
-comfort_televideo_dat$Percent = paste0(comfort_televideo_dat$Percent, "%")
-### Change levels to reposne options
-library(dplyr)
-comfort_televideo_dat$var_names = recode(comfort_televideo_dat$var_names, "1" = "Very \n uncomfortable", "2" = "Uncomfortable", "3" = "Somewhat \n uncomfortable", "4" = "Neither uncomfortable \n nor comfortable", "5" = "Somewhat \n comfortable", "6" = "Comfortable", "7" = "Very \n comfortable")
-comfort_televideo_dat$var_names = as.factor(comfort_televideo_dat$var_names)
-levels(comfort_televideo_dat$var_names)
-comfort_televideo_dat$var_names = factor(comfort_televideo_dat$var_names, levels = c("Very \n uncomfortable", "Uncomfortable", "Somewhat \n uncomfortable", "Neither uncomfortable \n nor comfortable", "Somewhat \n comfortable", "Comfortable", "Very \n comfortable"))
-levels(comfort_televideo_dat$var_names)
-
-title_comfort_televideo_dat = paste0("What is your level of comfort with televideo?", " ", "n=", n_comfort_televideo_dat)
-
-greater_comfort_text = paste0("% who are somewhat comfortable or greater", " ", "=", " ", greater_comfort, "%")
-### Create extra annotation
-grob <- grobTree(textGrob(greater_comfort_text, x=0.35,  y=0.95, hjust=0,
-  gp=gpar(col="red", fontsize=13, fontface="italic")))
-
-plot_comfort_televideo = ggplot(comfort_televideo_dat, aes(x = var_names,y = Frequency, fill = var_names))+
+title_sub_overall = paste0("Count and % agree or greater televideo satisfaction \n for substance use", " ", "n=", n_sub_overall_dat)
+plot_telehealth_sub = ggplot(sub_overall_dat, aes(x = var_names_sub_overall,y = sub_overall_dat, fill = var_names_sub_overall))+
   geom_bar(stat = "identity")+
-  labs(title=title_comfort_televideo_dat, x ="Response option", y = "Count")+
-  scale_y_continuous(limits = c(0,600))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = comfort_televideo_dat$Percent, vjust = -.5)+
-  annotation_custom(grob)
-plot_comfort_televideo
+  labs(title=title_sub_overall, x ="Dimension of satisfaction", y = "Count of clients agree or greater")+
+  scale_y_continuous(limits = c(0,80))+
+  labs(fill = "")+
+  geom_text(aes(label = percent_sub_overall), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+plot_telehealth_sub
 
 ```
-increase_comfort
-Is there something Centerstone can do to increase your comfort level?  If so, please describe what Centerstone can do.
-```{r echo=FALSE}
-#head(clincian_survey_dat$increase_comfort,15)
-```
-interest_working_home
-What is your level of interest in providing televideo services in the future?
-1, Very disinterested | 2, Disinterested | 3, Somewhat disinterested | 4, Neither disinterested nor interested | 5, Somewhat interested | 6, Interested | 7, Very interested
-
-Also include those who service_provided != 6
+recommend
+Would you recommend Centerstone's telehealth services to your Family and Friends?
+1, Definitely | 2, Very Likely | 3, Somewhat Likely | 4, Unlikely | 5, Would not recommend
 ```{r}
-interest_working_home_dat = na.omit(clincian_survey_dat$interest_working_home)
-interest_working_home_dat = data.frame(interest_working_home = interest_working_home_dat)
-n_interest_working_home_dat = dim(interest_working_home_dat)[1]
-interest_working_home_dat = data.frame(freq(interest_working_home_dat$interest_working_home))
-## Get rid of total
-interest_working_home_dat = interest_working_home_dat[-8,]
-var_names =  rownames(interest_working_home_dat)
-interest_working_home_dat$var_names = var_names
-typeof(interest_working_home_dat$Frequency)
-interest_working_home_dat$Percent = round(interest_working_home_dat$Percent,0)
-greater_interest = sum(interest_working_home_dat$Percent[5:7])
-interest_working_home_dat$Percent = paste0(interest_working_home_dat$Percent, "%")
+recommend_overall_dat = na.omit(data.frame(recommend_overall = tele_zoom_dat_complete$recommend))
+n_recommend_overall = dim(recommend_overall_dat)[1]
 
-interest_working_home_dat$var_names = recode(interest_working_home_dat$var_names, "1" = "Very \n disinterested", "2" = "Disinterested", "3" = "Somewhat \n disinterested", "4" = "Neither disinterested \n nor interested", "5" = "Somewhat \n interested", "6" = "Interested", "7" = "Very \n interested")
-interest_working_home_dat$var_names = as.factor(interest_working_home_dat$var_names)
-levels(interest_working_home_dat$var_names)
-interest_working_home_dat$var_names = factor(interest_working_home_dat$var_names, levels = c("Very \n disinterested", "Disinterested", "Somewhat \n disinterested", "Neither disinterested \n nor interested", "Somewhat \n interested", "Interested", "Very \n interested"))
-levels(interest_working_home_dat$var_names)
+recommend_overall_dat$recommend_overall = recode(recommend_overall_dat$recommend_overall, "1" = "Definitely", "2" = "Very Likely", "3" = "Somewhat Likely", "4" = "Unlikely", "5" = "Would not recommend")
 
-greater_interest_text = paste0("% who are somewhat interested or greater", " ", "=", " ", greater_interest, "%")
-### Create extra annotation
-grob <- grobTree(textGrob(greater_interest_text, x=0.35,  y=0.95, hjust=0,
+## relevel them
+recommend_overall_dat$recommend_overall = as.factor(recommend_overall_dat$recommend_overall)
+recommend_overall_dat$recommend_overall = factor(recommend_overall_dat$recommend_overall, levels = c("Definitely", "Very Likely", "Somewhat Likely", "Unlikely", "Would not recommend"))
+
+recommend_overall_dat = recommend_overall_dat %>% count(recommend_overall)
+
+recommend_overall_dat$percent = as.numeric(recommend_overall_dat$n / n_recommend_overall)
+
+greater_recommend_overall = paste0(round(sum(recommend_overall_dat$percent[1:2]),2)*100, "%")
+greater_recommend_overall_text = paste0("% who would definitely or are very likely to recommend Centerstone", " ", "=", " ", greater_recommend_overall)
+
+grob <- grobTree(textGrob(greater_recommend_overall_text, x=0.05,  y=0.8, hjust=0,
                           gp=gpar(col="red", fontsize=13, fontface="italic")))
 
-title_interest_working_home_dat = paste0("What is your level of interest in providing televideo \n services in the future?", " ", "n=", n_interest_working_home_dat)
-plot_interest_working_home = ggplot(interest_working_home_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_interest_working_home_dat, x ="Response option", y = "Count")+
-  scale_y_continuous(limits = c(0,600))+
+
+recommend_overall_dat$percent = round(recommend_overall_dat$percent, 2)*100
+recommend_overall_dat$percent = paste0(recommend_overall_dat$percent, "%")
+title_recommend_overalll = paste0("Would you recommend Centerstone's telehealth services to your Family \n and Friends?", " ", "n=", n_recommend_overall)
+
+plot_recommend_overall = ggplot(recommend_overall_dat, aes(x = recommend_overall,y =n, fill = recommend_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_recommend_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
   theme(legend.position = "none")+
-  geom_text_repel(label = interest_working_home_dat$Percent, vjust = -.5)+
   annotation_custom(grob)
-plot_interest_working_home
+  
+plot_recommend_overall
 ```
-barriers_work_home
-Are there barriers limiting your interest in providing televideo from home in the future?  If so, please list them.
-```{r echo=FALSE}
+expectation
+How would you rate your overall experience with telehealth at Centerstone?
+1, 1 did not meet expectation | 2, 2 | 3, 3 | 4, 4 | 5, 5 | 6, 6 | 7, 7 | 8, 8 | 9, 9 | 10, 10 exceeds expectation
+NPS is Promoter minus detracters
+
+https://www.qualtrics.com/experience-management/customer/net-promoter-score/
+https://www.netpromoter.com/know/
+https://www.netpromotersystem.com/about/measuring-your-net-promoter-score/
+https://www.surveymonkey.com/curiosity/what-is-a-good-net-promoter-score/
+```{r}
+expectation_overall_dat = na.omit(data.frame(expectation_overall = tele_zoom_dat_complete$expectation))
+n_expectation_overall = dim(expectation_overall_dat)[1]
+
+expectation_overall_dat$expectation_overall = ifelse(expectation_overall_dat$expectation_overall < 7, "Detractors", ifelse(expectation_overall_dat$expectation_overall < 9, "Passives", ifelse(expectation_overall_dat$expectation_overall >=9, "Promoters", "Wrong")))
+
+describe.factor(expectation_overall_dat$expectation_overall)
+
+
+## relevel them
+expectation_overall_dat$expectation_overall = as.factor(expectation_overall_dat$expectation_overall)
+expectation_overall_dat$expectation_overall = factor(expectation_overall_dat$expectation_overall, levels = c("Promoters", "Passives", "Detractors"))
+
+expectation_overall_dat = expectation_overall_dat %>% count(expectation_overall)
+expectation_overall_dat$percent = expectation_overall_dat$n  / n_expectation_overall
+expectation_overall_dat$percent = round(expectation_overall_dat$percent, 2)*100
+nps = expectation_overall_dat[1,3] - expectation_overall_dat[3,3]
+nps = paste0("Net Promoter Score =", " ", nps)
+
+grob <- grobTree(textGrob(nps, x=0.05,  y=0.8, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
+
+expectation_overall_dat$percent = paste0(expectation_overall_dat$percent, "%")
+title_expectation_overalll = paste0("How would you rate your overall experience with telehealth \n at Centerstone?", " ", "n=", n_expectation_overall)
+
+expectation_overall_dat
+
+
+plot_expectation_overall = ggplot(expectation_overall_dat, aes(x = expectation_overall,y =n, fill = expectation_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_expectation_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")+
+  annotation_custom(grob)
+
+plot_expectation_overall
+
 
 ```
 prefer_service
-In the future, how would you prefer to provide services? (please check all that apply)
-1, Televideo | 2, Teleaudio | 3, In-person
-
-clincian_survey_dat
-```{r echo=FALSE}
-
-prefer_service = tech_cri_dat_complete[,118:120]
-prefer_service = apply(prefer_service, 2, sum)
-prefer_service = data.frame(prefer_service)
-prefer_service$percent = prefer_service$prefer_service / n_clinician_survey
-prefer_service
-response_options =  c("Televideo", "Teleaudio", "In-person")
-prefer_service = data.frame(response_options, prefer_service)
-rownames(prefer_service) = NULL
-colnames(prefer_service)[2] = "count"
-prefer_service$percent = round(prefer_service$percent,2)
-prefer_service$percent = paste0(prefer_service$percent*100, "%")
-
-prefer_service = prefer_service[order(prefer_service$count,decreasing = TRUE),]
-
-
-title_prefer_service = paste0("In the future, how would you prefer to provide services? (please check all that apply)", " ", "n=", n_clinician_survey)
-table_prefer_service = 
-  gt(prefer_service) %>%
-  tab_header(title = title_prefer_service)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_prefer_service
-
-gtsave(table_prefer_service, "table_prefer_service.png")
-
-```
-ideal_features
-Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)
-1, Integration with medical records | 2, Electronic assessment capabilities | 3, Ability to conduct group sessions | 4, Virtual walk-in capabilities | 5, Ability to collect signatures from clients | 6, Ability to send documents to clients | 7, Client's ability to schedule appointments | 8, Other feature(s) not listed here
-If you select select prefer_service___1 == 1
-
-```{r echo=FALSE}
-clincian_survey_ideal_dat = subset(clincian_survey_dat, prefer_service___1 == 1)
-dim(clincian_survey_ideal_dat)
-n_clincian_survey_ideal = dim(clincian_survey_ideal_dat)[1]
-ideal_features = clincian_survey_ideal_dat[,121:128]
-ideal_features = apply(ideal_features, 2, sum)
-ideal_features = data.frame(ideal_features)
-ideal_features$percent = ideal_features$ideal_features / n_clincian_survey_ideal
-ideal_features
-response_options =  c("Integration with medical records", "Electronic assessment capabilities", "Ability to conduct group sessions", "Virtual walk-in capabilities", "Ability to collect signatures from clients", "Ability to send documents to clients", "Client's ability to schedule appointments", "Other feature(s) not listed here")
-ideal_features = data.frame(response_options, ideal_features)
-rownames(ideal_features) = NULL
-colnames(ideal_features)[2] = "count"
-ideal_features$percent = round(ideal_features$percent,2)
-ideal_features$percent = paste0(ideal_features$percent*100, "%")
-
-ideal_features = ideal_features[order(ideal_features$count,decreasing = TRUE),]
-
-title_ideal_features = paste0("Please select the features you would like to see in your future ideal televideo platform. (please check all that apply)", " ", "n=", n_clincian_survey_ideal)
-table_ideal_features = 
-  gt(ideal_features) %>%
-  tab_header(title = title_ideal_features)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more than total n / 100%.  Only respondents who selected at least televideo.",  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_ideal_features
-
-gtsave(table_ideal_features, "table_ideal_features.png")
-
-```
-other_ideal_features
-Code later
+In the future, how would you prefer to receive services from Centerstone? (select all that apply)
+1, Telehealth video | 2, Telephone | 3, In-person
 ```{r}
+prefer_service_overall_dat = na.omit(data.frame(televideo = tele_zoom_dat_complete$prefer_service___1, telephone = tele_zoom_dat_complete$prefer_service___2, in_person = tele_zoom_dat_complete$prefer_service___3))
 
-```
+n_prefer_service_overall = dim(prefer_service_overall_dat)[1]
 
+prefer_service_overall_dat = apply(prefer_service_overall_dat, 2, sum)
+percent_prefer_service_overall = paste0(round(prefer_service_overall_dat / n_prefer_service_overall,2)*100, "%")
+prefer_service_overall_dat = data.frame(t(rbind(prefer_service_overall_dat, percent_prefer_service_overall)))
+var_names =  rownames(prefer_service_overall_dat)
+prefer_service_overall_dat = data.frame(var_names, prefer_service_overall_dat)
+rownames(prefer_service_overall_dat) = NULL
+prefer_service_overall_dat
+colnames(prefer_service_overall_dat) = c("response_option", "count", "percent")
+prefer_service_overall_dat
 
-ideal_features_no
-Would any of these features increase your preference to use televideo in the future? (please check all that apply)
-[prefer_service(1)] <> '1' and ([job_title] <> '3' and [service_provided(6)] <> '1')
-service_provided__1 == 0 
-```{r echo=FALSE}
-clincian_survey_ideal_no_dat = subset(clincian_survey_dat, prefer_service___1 == 0)
-dim(clincian_survey_ideal_no_dat)
-n_clincian_survey_ideal_no = dim(clincian_survey_ideal_no_dat)[1]
-ideal_features_no = clincian_survey_ideal_no_dat[,130:137]
-ideal_features_no = apply(ideal_features_no, 2, sum)
-ideal_features_no = data.frame(ideal_features_no)
-ideal_features_no$percent = ideal_features_no$ideal_features_no / n_clincian_survey_ideal_no
-response_options =  c("Integration with medical records", "Electronic assessment capabilities", "Ability to conduct group sessions", "Virtual walk-in capabilities", "Ability to collect signatures from clients", "Ability to send documents to clients", "Client's ability to schedule appointments", "Other feature(s) not listed here")
-ideal_features_no = data.frame(response_options, ideal_features_no)
-rownames(ideal_features_no) = NULL
-colnames(ideal_features_no)[2] = "count"
-ideal_features_no$percent = round(ideal_features_no$percent,2)
-ideal_features_no$percent = paste0(ideal_features_no$percent*100, "%")
+title_prefer_service_overall = paste0("In the future, how would you prefer to receive \n services from Centerstone? (select all that apply)", " ", "n=", n_prefer_service_overall)
 
-ideal_features_no = ideal_features_no[order(ideal_features_no$count,decreasing = TRUE),]
+write.csv(prefer_service_overall_dat, "prefer_service_overall_dat.csv", row.names = FALSE)
+prefer_service_overall_dat = read.csv("prefer_service_overall_dat.csv", header = TRUE)
+prefer_service_overall_dat
 
-title_ideal_features_no = paste0("Would any of these features increase your preference to use televideo in the future? (please check all that apply)", " ", "n=", n_clincian_survey_ideal_no)
-table_ideal_features_no = 
-  gt(ideal_features_no) %>%
-  tab_header(title = title_ideal_features_no)%>%
-  tab_footnote(footnote = "Respondants can select all that apply so count / percent can add up to more than total n / 100%. Only respondents who did not select televideo." ,  locations = cells_body(columns = vars(percent, count), rows = 1)) %>%
-  cols_label(response_options = md("Response options"), count = md("Count"), percent = md("Percent"))
-table_ideal_features_no
-
-gtsave(table_ideal_features_no, "table_ideal_features_no.png")
-
-```
-other_ideal_features_nopref
-Code later
-```{r}
-
-```
+prefer_service_overall_dat$response_option = recode(prefer_service_overall_dat$response_option, "in_person" = "in person")
 
 
-Emotional social support
-available_listen
-listen_concern
-supports_emotions
-
-Instrumental social support
-supervision
-helpful_advice
-actions_decisions
-
-perceived organizational support 
-time_resources
-contribution
-extra_effort
-
-1, Strongly disagree | 2, Disagree | 3, Undecided | 4, Agree | 5, Strongly agree | 6, N/A
-```{r}
-supervisor_dat = clincian_survey_dat[,139:147]
-supervisor_dat[supervisor_dat == 6] = NA
-ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
-iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
-pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
-
-supervisor_dat = data.frame(ess, iss, pos)
-supervisor_dat_p = supervisor_dat
-supervisor_dat = apply(supervisor_dat, 2, mean, na.rm = TRUE)
-supervisor_dat = data.frame(supervisor_dat)
-supervisor_dat
-var_names = c("Emotional social support", "Instrumental social support", "Perceived organizational support")
-supervisor_dat = data.frame(var_names, supervisor_dat)
-rownames(supervisor_dat) = NULL
-## Get rid of total
-supervisor_dat$supervisor_dat = round(supervisor_dat$supervisor_dat,2)
-title_supervisor_dat = paste0("Supervison support", " ", "n=", n_clinician_survey)
-plot_ess = ggplot(supervisor_dat, aes(x = var_names,y = supervisor_dat, fill = supervisor_dat))+
-  geom_bar(stat = "identity")+
-  labs(title=title_supervisor_dat, x ="Outcome", y = "Average rating")+
-  scale_y_continuous(limits = c(0,5))+
-  labs(fill = "")+
-  geom_text(aes(label = supervisor_dat), position=position_dodge(width=0.9), vjust=-0.25)+
+plot_prefer_service_overall = ggplot(prefer_service_overall_dat, aes(x = reorder(response_option, -count),y =count, fill = response_option))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_prefer_service_overall, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
   theme(legend.position = "none")
-plot_ess
-supervisor_dat_p_complete = data.frame(apply(supervisor_dat_p, 2, function(x){ifelse(x > 3,1,0)}))
-supervisor_dat_p_complete = na.omit(supervisor_dat_p_complete)
-n_supervisor_dat_p_complete = dim(supervisor_dat_p_complete)[1]
-supervisor_dat_p_sum = apply(supervisor_dat_p_complete, 2, sum)
-supervisor_dat_p_p = round(supervisor_dat_p_sum / n_supervisor_dat_p_complete,2)
-supervisor_dat_p_p
-supervisor_dat_p_n_p = rbind(supervisor_dat_p_sum, supervisor_dat_p_p)
-rownames(supervisor_dat_p_n_p) = c("N", "%")
-supervisor_dat_p_n_p
+
+plot_prefer_service_overall
+
 
 ```
-Correlation with supervisor scores across all three with the number of barriers for those who did not use SnapMD
-
-Subset data for those who did not select SnapMD and grab all the variables for barriers_snap_md
-```{r}
-
-supervisor_dat = clincian_survey_dat[,139:147]
-supervisor_dat[supervisor_dat == 6] = NA
-ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
-iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
-pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
-
-supervisor_dat = data.frame(ess, iss, pos)
-
-## Sum across all barriers
-barriers_snap_md = apply(clincian_survey_dat[,84:95], 1, sum)
-hist(barriers_snap_md)
-
-cor_snap_no_use_dat = data.frame(supervisor_dat, barriers_snap_md, service_provided___4 = clincian_survey_dat$service_provided___4, service_provided___5 = clincian_survey_dat$service_provided___5)
-
-
-cor_snap_no_use_dat = subset(cor_snap_no_use_dat,service_provided___4 == 0 & service_provided___5 == 0)
-cor_snap_no_use_dat_complete = na.omit(cor_snap_no_use_dat)
-cor_snap_no_use_dat_complete[,c(5,6)] = NULL
-cor_snap_no_use_dat_complete
-n_cor_snap_no_use_dat_complete = dim(cor_snap_no_use_dat_complete)[1]
-
-cor_ess = cor.test(cor_snap_no_use_dat_complete$ess, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
-cor_ess = round(cor_ess$estimate,2)
-cor_ess
-
-cor_iss = cor.test(cor_snap_no_use_dat_complete$iss, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
-cor_iss = round(cor_iss$estimate,2)
-
-cor_pos = cor.test(cor_snap_no_use_dat_complete$pos, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
-cor_pos = round(cor_pos$estimate,2)
-cor_all =  rbind(cor_ess, cor_iss, cor_pos)
-
-cor_snap_no_use = data.frame(cor_names = c("Correlation ESS", "Correlation ISS", "Correlation POS"), cor_all)
-rownames(cor_snap_no_use) = NULL
-cor_snap_no_use
-
-
-title_cor_snap_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to SnapMD for those not using SnapMD", " ", "n=", n_cor_snap_no_use_dat_complete)
-table_cor_snap_no_use = 
-  gt(cor_snap_no_use) %>%
-  tab_header(title = title_cor_snap_no_use)%>%
-  tab_footnote(footnote = "All statistically significant < .01." ,  locations = cells_body(columns = vars(cor), rows = 1)) %>%
-  cols_label(cor_names = md("Supervisor support construct"), cor = md("Spearman correlation"))
-table_cor_snap_no_use
-
-gtsave(table_cor_snap_no_use, "table_cor_snap_no_use.png")
-
-```
-Correlation with supervisor scores across all three with the number of barriers for those who did not use Zoom
-```{r}
-supervisor_dat = clincian_survey_dat[,139:147]
-supervisor_dat[supervisor_dat == 6] = NA
-ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
-iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
-pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
-
-supervisor_dat = data.frame(ess, iss, pos)
-
-## Sum across all barriers
-#barriers_zoom = subset(clincian_survey_dat, service_provided___2 == 0 & service_provided___3 == 0)
-barriers_zoom = apply(clincian_survey_dat[,97:108],1,sum) 
-
-
-cor_zoom_no_use_dat = data.frame(supervisor_dat, barriers_zoom, service_provided___2 = clincian_survey_dat$service_provided___2, service_provided___3 = clincian_survey_dat$service_provided___3)
-
-
-cor_zoom_no_use_dat = subset(cor_zoom_no_use_dat,service_provided___2 == 0 & service_provided___3 == 0)
-
-cor_zoom_no_use_dat_complete = na.omit(cor_zoom_no_use_dat)
-cor_zoom_no_use_dat_complete[,c(5,6)] = NULL
-cor_zoom_no_use_dat_complete
-n_cor_zoom_no_use_dat_complete = dim(cor_zoom_no_use_dat_complete)[1]
-
-cor_ess = cor.test(cor_zoom_no_use_dat_complete$ess, cor_zoom_no_use_dat_complete$barriers_zoom, cor = "spearman")
-cor_ess = round(cor_ess$estimate,2)
-cor_ess
-
-cor_iss = cor.test(cor_zoom_no_use_dat_complete$iss, cor_zoom_no_use_dat_complete$barriers_zoom, cor = "spearman")
-cor_iss = round(cor_iss$estimate,2)
-
-cor_pos = cor.test(cor_zoom_no_use_dat_complete$pos, cor_zoom_no_use_dat_complete$barriers_zoom, cor = "spearman")
-cor_pos = round(cor_pos$estimate,2)
-cor_all =  rbind(cor_ess, cor_iss, cor_pos)
-
-cor_zoom_no_use = data.frame(cor_names = c("Correlation ESS", "Correlation ISS", "Correlation POS"), cor_all)
-rownames(cor_zoom_no_use) = NULL
-cor_zoom_no_use
-
-
-title_cor_zoom_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to zoomMD for those not using Zoom", " ", "n=", n_cor_zoom_no_use_dat_complete)
-table_cor_zoom_no_use = 
-  gt(cor_zoom_no_use) %>%
-  tab_header(title = title_cor_zoom_no_use)%>%
-   tab_footnote(footnote = "Only Correlation POS statistically significant < .01." ,  locations = cells_body(columns = vars(cor), rows = 1)) %>%
-  cols_label(cor_names = md("Supervisor support construct"), cor = md("Spearman correlation"))
-table_cor_zoom_no_use
-
-gtsave(table_cor_zoom_no_use, "table_cor_zoom_no_use.png")
-```
-
-
-Subset data for those who did not select SnapMD and grab all the variables for barriers_snap_md
-```{r}
-
-supervisor_dat = clincian_survey_dat[,139:147]
-supervisor_dat[supervisor_dat == 6] = NA
-ess = apply(supervisor_dat[,1:3],1,mean, na.rm = TRUE)
-iss = apply(supervisor_dat[,4:6],1,mean, na.rm = TRUE)
-pos = apply(supervisor_dat[,7:9],1,mean, na.rm = TRUE)
-
-supervisor_dat = data.frame(ess, iss, pos)
-
-## Sum across all barriers
-barriers_snap_md = apply(clincian_survey_dat[,84:95], 1, sum)
-hist(barriers_snap_md)
-
-cor_snap_no_use_dat = data.frame(supervisor_dat, barriers_snap_md, service_provided___4 = clincian_survey_dat$service_provided___4, service_provided___5 = clincian_survey_dat$service_provided___5)
-cor_snap_no_use_dat = subset(cor_snap_no_use_dat,service_provided___4 == 0 & service_provided___5 == 0)
-cor_snap_no_use_dat_complete = na.omit(cor_snap_no_use_dat)
-cor_snap_no_use_dat_complete[,c(5,6)] = NULL
-cor_snap_no_use_dat_complete
-n_cor_snap_no_use_dat_complete = dim(cor_snap_no_use_dat_complete)[1]
-
-cor_ess = cor.test(cor_snap_no_use_dat_complete$ess, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
-cor_ess = round(cor_ess$estimate,2)
-cor_ess
-
-cor_iss = cor.test(cor_snap_no_use_dat_complete$iss, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
-cor_iss = round(cor_iss$estimate,2)
-
-cor_pos = cor.test(cor_snap_no_use_dat_complete$pos, cor_snap_no_use_dat_complete$barriers_snap_md, cor = "spearman")
-cor_pos = round(cor_pos$estimate,2)
-cor_all =  rbind(cor_ess, cor_iss, cor_pos)
-
-cor_snap_no_use = data.frame(cor_names = c("Correlation ESS", "Correlation ISS", "Correlation POS"), cor_all)
-rownames(cor_snap_no_use) = NULL
-cor_snap_no_use
-
-
-title_cor_snap_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to SnapMD for those not using SnapMD", " ", "n=", n_cor_snap_no_use_dat_complete)
-table_cor_snap_no_use = 
-  gt(cor_snap_no_use) %>%
-  tab_header(title = title_cor_snap_no_use)%>%
-  cols_label(cor_names = md("Supervisor support construct"), cor = md("Spearman correlation"))
-table_cor_snap_no_use
-
-gtsave(table_cor_snap_no_use, "table_cor_snap_no_use.png")
-
-```
-
-
 benefits
 Code later
-For you personally, what are the benefits of using televideo services relative to in-person services?
-Cat do first 200
-```{r echo=FALSE}
-#head(clincian_survey_dat$benefits)
-
-benefits_complete = na.omit(clincian_survey_dat$benefits)
-length(benefits_complete)
-```
-barriers 
-Code later
-For you personally, what are the barriers of using televideo relative to in-person services?
-Jess do first 200
-```{r echo=FALSE}
-#head(clincian_survey_dat$barriers)
-barriers_complete = na.omit(clincian_survey_dat$barriers)
-length(barriers_complete)
-```
-something_else
-code later
-Is there something else you would like us to know about challenges or successes you are encountering as a result of working in an altered work environment?
-```{r echo=FALSE}
-#head(clincian_survey_dat$something_else, 15)
-something_else_complete = na.omit(clincian_survey_dat$something_else)
-length(something_else_complete)
-```
-State
-1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
-tech_cri_dat_complete
 ```{r}
-state_dat = na.omit(tech_cri_dat_complete$state)
-state_dat = data.frame(state = state_dat)
-n_state_dat = dim(state_dat)[1]
-state_dat = data.frame(freq(state_dat$state))
-## Get rid of total change to 6 later
-state_dat = state_dat[-6,]
-state_dat$var_names = c("Tennessee", "Indiana", "Illinois", "Florida", "Another state")
-state_dat$var_names = as.factor(state_dat$var_names)
+benefits_complete_client_zoom = na.omit(tele_zoom_dat_complete$benefits)
+length(benefits_complete_client_zoom)
+write.csv(benefits_complete_client_zoom, "benefits_complete_client_zoom.csv", row.names = FALSE)
+```
+barriers
+code later
+```{r}
 
-state_dat$var_names = factor(state_dat$var_names, levels = levels(state_dat$var_names)[5:1])
+barriers_complete_client_zoom = na.omit(tele_zoom_dat_complete$barriers)
+length(barriers_complete_client_zoom)
+write.csv(barriers_complete_client_zoom, "barriers_complete_client_zoom.csv", row.names = FALSE)
 
-state_dat$Percent = state_dat$Percent / 100
-state_dat$Percent = round(state_dat$Percent, 2)*100
-state_dat$Percent = paste0(state_dat$Percent, "%")
-typeof(state_dat$Frequency)
-title_state = paste0("Which state do you currently live in?", " ", "n=", n_state_dat)
-plot_state = ggplot(state_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_state, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,1000))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = state_dat$Percent, vjust = -.5)
-plot_state
+```
+state
+Which state do you currently live in?
+1, Indiana | 2, Florida | 3, Tennessee | 4, Illinois | 5, Another state
+```{r}
+
+state_overall_dat = na.omit(data.frame(state_overall = tele_zoom_dat_complete$state))
+n_state_overall = dim(state_overall_dat)[1]
+
+state_overall_dat$state_overall = recode(state_overall_dat$state_overall, "1" = "Indiana", "2" = "Florida", "3" = "Tennessee", "4" = "Illinois", "5" = "Another state")
+
+## relevel them
+state_overall_dat$state_overall = as.factor(state_overall_dat$state_overall)
+state_overall_dat$state_overall = factor(state_overall_dat$state_overall, levels = c("Tennessee", "Indiana", "Illinois", "Florida", "Another state"))
+
+state_overall_dat = state_overall_dat %>% count(state_overall)
+
+state_overall_dat$percent = as.numeric(state_overall_dat$n / n_state_overall)
+
+state_overall_dat$percent = round(state_overall_dat$percent, 2)*100
+state_overall_dat$percent = paste0(state_overall_dat$percent, "%")
+title_state_overalll = paste0("Which state do you currently live in?", " ", "n=", n_state_overall)
+
+plot_state_overall = ggplot(state_overall_dat, aes(x = reorder(state_overall, -n),y =n, fill = state_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_state_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+
+plot_state_overall
+
 ```
 age
-What is your age?
-1, 18 to 25 years old | 2, 26 to 34 years old | 3, 35 to 44 years old | 4, 45 to 54 years old | 5, 55 to 64 years old | 6, 65 to 74 years old | 7, 75+
+Under 5 
+5-14
+15-24
+25-34
+35-44
+45-54
+55-64
+65+
 ```{r}
-age_dat = na.omit(tech_cri_dat_complete$age)
-age_dat = data.frame(age = age_dat)
-n_age_dat = dim(age_dat)[1]
-age_dat = data.frame(freq(age_dat$age))
-## Get rid of total change to 8 later
-age_dat = age_dat[-8,]
-age_dat$var_names = c("18 to 25 \n years old", "26 to 34 \n years old", "35 to 44 \n years old", "45 to 54 \n years old", "55 to 64 \n years old", "65 to 74 \n years old", "75+")
-age_dat$Percent = age_dat$Percent / 100
-age_dat$Percent = round(age_dat$Percent, 2)*100
-age_dat$Percent = paste0(age_dat$Percent, "%")
-typeof(age_dat$Frequency)
-title_age = paste0("What is your age?", " ", "n=", n_age_dat)
-plot_age = ggplot(age_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_age, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,1000))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = age_dat$Percent, vjust = -.5)
-plot_age
+age_overall = na.omit(tele_zoom_dat_complete$age)
+n_age_overall = length(age_overall)
+age_overall = ifelse(age_overall < 5, "Under 5", ifelse(age_overall < 15, "5-14", ifelse(age_overall < 25, "15-24", ifelse(age_overall < 35, "25-34", ifelse(age_overall < 45, "35-44", ifelse(age_overall < 55, "45-55", ifelse(age_overall < 65, "55-64", "65+")))))))
+age_overall = describe.factor(age_overall)
+age_overall = t(age_overall)
+age_range = rownames(age_overall)
+age_overall = data.frame(age_overall)
+age_overall
+age_overall = data.frame(age_range, age_overall)
+age_overall$Percent= paste0(round(age_overall$Percent,0), "%")
+age_overall
+age_overall$age_range = factor(age_overall$age_range, levels = c("Under 5", "5-14", "15-24", "25-34", "35-44", "45-55", "55-64", "65+"))
 
+title_age_overall = paste0("What is your age?", " ", "n=", n_age_overall)
+plot_age_overall = ggplot(age_overall, aes(x = age_range,y =Count, fill = age_range))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_age_overall, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,300))+
+  geom_text(aes(label = Percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+plot_age_overall
 
 ```
 race
 What is your racial identity?
 1, White | 2, Black or African American | 3, American Indian or Alaska Native | 4, Asian | 5, Native Hawaiian or Other Pacific Islander | 6, Multiracial | 7, Another racial identity | 8, Prefer not to respond
-```{r echo=FALSE}
-race_dat = na.omit(tech_cri_dat_complete$race)
-race_dat = data.frame(race = race_dat)
-n_race_dat = dim(race_dat)[1]
-race_dat = data.frame(freq(race_dat$race))
-## Get rid of total change to 9 later
-race_dat = race_dat[-9,]
-race_dat$var_names = c("White", "Black or African American", "American Indian or \n Alaska Native", "Asian", "Native Hawaiian or \n Other Pacific Islander", "Multiracial", "Another racial identity", "Prefer not to respond")
-race_dat$Percent = race_dat$Percent / 100
-race_dat$Percent = round(race_dat$Percent, 2)*100
-race_dat$Percent = paste0(race_dat$Percent, "%")
-typeof(race_dat$Frequency)
-title_race = paste0("What is your race?", " ", "n=", n_race_dat)
-plot_race = ggplot(race_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_race, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_race_dat))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = race_dat$Percent, vjust = -.5)
-plot_race
+```{r}
+race_overall_dat = na.omit(tele_zoom_dat_complete$race)
+describe.factor(race_overall_dat)
+n_race_overall = length(race_overall_dat)
 
+
+race_overall_dat = recode(race_overall_dat, "1" = "White", "2" = "Black or\n  African American", "3" = "American Indian \n or Alaska Native", "4" = "Asian", "5" = "Native Hawaiian \n or Other Pacific Islander", "6" = "Multiracial", "7" ="Another racial \n identity", "8" =  "Prefer not \n to respond")
+race_overall_dat = data.frame(race_overall = race_overall_dat)
+
+race_overall_dat = race_overall_dat %>% count(race_overall)
+
+race_overall_dat$percent = as.numeric(race_overall_dat$n / n_race_overall)
+
+race_overall_dat$percent = round(race_overall_dat$percent, 2)*100
+race_overall_dat$percent = paste0(race_overall_dat$percent, "%")
+title_race_overalll = paste0("What is your racial identity?", " ", "n=", n_race_overall)
+
+plot_race_overall = ggplot(race_overall_dat, aes(x = reorder(race_overall, -n),y =n, fill = race_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_race_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+
+plot_race_overall
 
 ```
 Gender
 What is your gender identity?
 1, Male | 2, Female | 3, Another gender identity | 4, Prefer not to respond
 ```{r}
-gender_dat = na.omit(tech_cri_dat_complete$gender)
-gender_dat = data.frame(gender = gender_dat)
-n_gender_dat = dim(gender_dat)[1]
-gender_dat = data.frame(freq(gender_dat$gender))
-## Get rid of total change to 5 later
-gender_dat = gender_dat[-5,]
-gender_dat$var_names = c("Male", "Female", "Another gender identity", "Prefer not to respond")
-gender_dat$Percent = gender_dat$Percent / 100
-gender_dat$Percent = round(gender_dat$Percent, 2)*100
-gender_dat$Percent = paste0(gender_dat$Percent, "%")
-typeof(gender_dat$Frequency)
-title_gender = paste0("What is your gender?", " ", "n=", n_gender_dat)
-plot_gender = ggplot(gender_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_gender, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,n_gender_dat))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = gender_dat$Percent, vjust = -.5)
-plot_gender
-```
-job_title_extend
-Which option best describes your job title?
-1, Psychiatrists | 2, Nurse Practitioners | 3, Clinician - Masters, non-licensed | 4, Clinician - Masters, licensed | 5, Clinician - Bachelors | 6, Peer Support Specialist | 7, Another job title
-```{r echo=FALSE}
-job_title_extend_dat = na.omit(tech_cri_dat_complete$job_title_extend)
-job_title_extend_dat = data.frame(job_title_extend = job_title_extend_dat)
-n_job_title_extend_dat = dim(job_title_extend_dat)[1]
-job_title_extend_dat = data.frame(freq(job_title_extend_dat$job_title_extend))
-## Get rid of total change to 8 later
-job_title_extend_dat = job_title_extend_dat[-8,]
-job_title_extend_dat$var_names = c("Psychiatrists", "Nurse Practitioners", "Clinician - Masters, \n non-licensed", "Clinician - Masters, \n licensed", "Clinician - Bachelors", "Peer Support Specialist", "Another job title")
-job_title_extend_dat$Percent = job_title_extend_dat$Percent / 100
-job_title_extend_dat$Percent = round(job_title_extend_dat$Percent, 2)*100
-job_title_extend_dat$Percent = paste0(job_title_extend_dat$Percent, "%")
-typeof(job_title_extend_dat$Frequency)
-title_job_title_extend = paste0("Which option best describes your job title?", " ", "n=", n_job_title_extend_dat)
-plot_job_title_extend = ggplot(job_title_extend_dat, aes(x = var_names,y = Frequency, fill = var_names))+
-  geom_bar(stat = "identity")+
-  labs(title=title_job_title_extend, y = "Count", x = "Response option")+
-  scale_y_continuous(limits = c(0,1500))+
-  theme(legend.position = "none")+
-  geom_text_repel(label = job_title_extend_dat$Percent, vjust = -.5)
-plot_job_title_extend
+gender_overall_dat = na.omit(tele_zoom_dat_complete$gender)
+describe.factor(gender_overall_dat)
+n_gender_overall = length(gender_overall_dat)
+
+
+gender_overall_dat = recode(gender_overall_dat, "1" = "Male", "2" = "Female", "3" = "Another gender identity", "4" = "Prefer not to respond")
+gender_overall_dat = data.frame(gender_overall = gender_overall_dat)
+
+gender_overall_dat = gender_overall_dat %>% count(gender_overall)
+
+gender_overall_dat$percent = as.numeric(gender_overall_dat$n / n_gender_overall)
+
+gender_overall_dat$percent = round(gender_overall_dat$percent, 2)*100
+gender_overall_dat$percent = paste0(gender_overall_dat$percent, "%")
+title_gender_overalll = paste0("What is your gender identity?", " ", "n=", n_gender_overall)
+
+plot_gender_overall = ggplot(gender_overall_dat, aes(x = reorder(gender_overall, -n),y =n, fill = gender_overall))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_gender_overalll, y = "Count", x = "Response option")+
+  scale_y_continuous(limits = c(0,400))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  theme(legend.position = "none")
+
+plot_gender_overall
 
 ```
-other_job_title
-```{r echo=FALSE}
-head(tech_cri_dat_complete[,159],15)
+For presentation
+Get graphs of substance use for client and clincian
+Get graph of preferences
+
+Clinician data prep
+
+Calculate statistical difference: https://stattrek.com/hypothesis-test/difference-in-proportions.aspx
+```{r}
+sub_overall_dat = tele_zoom_dat_complete
+sub_overall_dat$video_audio
+### Get rid of those who said only audio so the statement about televideo in the title is true
+sub_overall_dat = subset(sub_overall_dat, video_audio == 1)
+sub_overall_dat$video_audio
+sub_overall_dat = sub_overall_dat[,c(9)]
+sub_overall_dat = na.omit(sub_overall_dat)
+### Subset 6
+sub_overall_dat = subset(sub_overall_dat, sub_overall_dat != 6)
+sub_overall_dat
+n_sub_overall_dat = length(sub_overall_dat)
+
+sub_overall_dat = ifelse(sub_overall_dat > 3, 1, 0)
+sub_overall_dat = sum(sub_overall_dat)
+percent_sub_overall = round(sub_overall_dat / n_sub_overall_dat,2)
+sub_client_dat = data.frame(n = n_sub_overall_dat, percent =  percent_sub_overall)
+
+
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-28_1508.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = tech_cri_dat[-c(1:6),]
+
+tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
+
+### Clinician survey data 
+clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
+clincian_survey_dat = subset(clincian_survey_dat, service_provided___6 != 1)
+telehealth_sat_dat = clincian_survey_dat
+
+
+n_telehealth_sat_dat = dim(telehealth_sat_dat)[1]
+## Subset 6, because you are a dumbass!!!!  6 = N/A
+telehealth_sat_dat = telehealth_sat_dat[,110:113]
+telehealth_sat_dat[telehealth_sat_dat == 6] = NA
+telehealth_sat_p = telehealth_sat_dat
+describe.factor(telehealth_sat_p$substance)
+telehealth_sat_p = apply(telehealth_sat_p, 2, function(x){ifelse(x > 3,1,0)})
+telehealth_sat_p = data.frame(telehealth_sat_p)
+### When you na.omit you are omitting for all the variables not just substance so you lose a few extra
+telehealth_sat_p_complete = na.omit(telehealth_sat_p)
+describe.factor(telehealth_sat_p_complete$substance)
+n_telehealth_sat_p_complete  = dim(telehealth_sat_p_complete)[1]
+telehealth_sat_p_complete_n = apply(telehealth_sat_p_complete, 2, sum)
+telehealth_sat_p_complete_p = round(telehealth_sat_p_complete_n/n_telehealth_sat_p_complete,2)
+telehealth_sat_p_complete = rbind(telehealth_sat_p_complete_n, telehealth_sat_p_complete_p)
+rownames(telehealth_sat_p_complete) = c("n", "percent")
+telehealth_sat_p_complete
+sub_clinician_dat = telehealth_sat_p_complete[,2]
+### Stack percentages and n's
+sub_client_clinician = rbind(sub_client_dat, sub_clinician_dat)
+sub_client_clinician
+
+### Create an overall average percentage greater across other constructs of communication, manage, and recovery
+sat_clinician_dat = tele_zoom_dat_complete
+sat_clinician_dat = sat_clinician_dat[,c(8,10,11)]
+sat_clinician_dat = na.omit(sat_clinician_dat)
+n_sat_clinician_dat = dim(sat_clinician_dat)[1]
+sat_clinician_dat = apply(sat_clinician_dat, 2, function(x){ifelse(x > 3, 1, 0)})
+sat_clinician_dat = data.frame(sat_clinician_dat)
+
+sat_clinician_dat = apply(sat_clinician_dat, 2, sum)
+percent_sat_clinician = round(sat_clinician_dat / n_sat_clinician_dat,2)
+sat_clinician_dat = data.frame(sat_clinician_dat, percent_sat_clinician)
+sat_clinician_dat = apply(sat_clinician_dat, 2, mean)
+sat_clinician_dat = data.frame(sat_clinician_dat)
+sat_clinician_dat[1,1] = round(sat_clinician_dat[1,1],0)
+sat_clinician_dat
+sat_clinician_dat = data.frame(sat_clinician_dat)
+sat_clinician_dat = t(sat_clinician_dat)
+colnames(sat_clinician_dat) = c("n", "percent")
+
+sat_client_dat =  telehealth_sat_p_complete[,c(1,3,4)]
+sat_client_dat = apply(sat_client_dat, 1, mean)
+sat_client_dat = round(sat_client_dat, 2)
+sat_client_dat = data.frame(sat_client_dat)
+sat_client_dat = t(sat_client_dat)
+sat_client_dat
+
+sat_non_sub_client_clinician = rbind(sat_clinician_dat, sat_client_dat)
+### Create weighted mean
+sat_non_sub_client_clinician = data.frame(sat_non_sub_client_clinician)
+wt = c(sat_non_sub_client_clinician$n)/sum(sat_non_sub_client_clinician$n)
+sat_non_sub_client_clinician_wt_p = weighted.mean(sat_non_sub_client_clinician$percent, wt)
+sat_non_sub_client_clinician_n = round(mean(sat_non_sub_client_clinician$n),2)
+
+sub_client_clinician
+
+sat_non_sub_client_clinician = data.frame(n = sat_non_sub_client_clinician_n, percent = sat_non_sub_client_clinician_wt_p)
+sat_non_sub_client_clinician = round(sat_non_sub_client_clinician,2)
+sat_non_sub_client_clinician
+
+
+non_sub_and_sub_client_clinican = rbind(sub_client_clinician, sat_non_sub_client_clinician)
+non_sub_and_sub_client_clinican$response = c("Client sub use", "Clinician sub use support", "Weighted average client / clinician non-sub use")
+non_sub_and_sub_client_clinican
 
 ```
+Statistical test for client clincian sub
+p = (p1 * n1 + p2 * n2) / (n1 + n2)
+SE = sqrt{ p * ( 1 - p ) * [ (1/n1) + (1/n2) ] 
+z = (p1 - p2) / SE
+https://www.cyclismo.org/tutorial/R/pValues.html
+```{r}
+
+### Client versus average
+p_client_sub_v_wt = (non_sub_and_sub_client_clinican$percent[1]*non_sub_and_sub_client_clinican$n[1] + non_sub_and_sub_client_clinican$percent[3]*non_sub_and_sub_client_clinican$n[3])/(non_sub_and_sub_client_clinican$n[1]+ non_sub_and_sub_client_clinican$n[3])
+
+
+se_p_client_sub_v_wt = sqrt(p_client_sub_v_wt*(1-p_client_sub_v_wt) * ( (1/non_sub_and_sub_client_clinican$n[1]) +(1/non_sub_and_sub_client_clinican$n[3]) ) )
+
+z_client_sub_v_wt = (non_sub_and_sub_client_clinican$percent[1] - non_sub_and_sub_client_clinican$percent[3])/se_p_client_sub_v_wt
+z_client_sub_v_wt
+p_client_sub_v_wt = round(2*pnorm(-abs(z_client_sub_v_wt)),4)
+p_client_sub_v_wt
+
+### Clinician versus average
+p_clinician_sub_v_wt = (non_sub_and_sub_client_clinican$percent[2]*non_sub_and_sub_client_clinican$n[2] + non_sub_and_sub_client_clinican$percent[3]*non_sub_and_sub_client_clinican$n[3])/(non_sub_and_sub_client_clinican$n[2]+ non_sub_and_sub_client_clinican$n[3])
+
+
+se_p_clinician_sub_v_wt = sqrt(p_clinician_sub_v_wt*(1-p_clinician_sub_v_wt) * ( (1/non_sub_and_sub_client_clinican$n[2]) +(1/non_sub_and_sub_client_clinican$n[3])))
+
+z_clinician_sub_v_wt = (non_sub_and_sub_client_clinican$percent[2] - non_sub_and_sub_client_clinican$percent[3])/se_p_clinician_sub_v_wt
+z_clinician_sub_v_wt
+p_clinician_sub_v_wt = round(2*pnorm(-abs(z_clinician_sub_v_wt)),4)
+p_clinician_sub_v_wt
+
+#Clinician versus client
+p_clinician_sub_v_client = (non_sub_and_sub_client_clinican$percent[2]*non_sub_and_sub_client_clinican$n[2] + non_sub_and_sub_client_clinican$percent[1]*non_sub_and_sub_client_clinican$n[1])/(non_sub_and_sub_client_clinican$n[2]+ non_sub_and_sub_client_clinican$n[1])
+
+
+se_p_clinician_sub_v_client = sqrt(p_clinician_sub_v_client*(1-p_clinician_sub_v_client) * ( (1/non_sub_and_sub_client_clinican$n[2]) +(1/non_sub_and_sub_client_clinican$n[1])))
+
+z_clinician_sub_v_client = (non_sub_and_sub_client_clinican$percent[2] - non_sub_and_sub_client_clinican$percent[1])/se_p_clinician_sub_v_client
+z_clinician_sub_v_client
+p_clinician_sub_v_client = round(2*pnorm(-abs(z_clinician_sub_v_client)),4)
+p_clinician_sub_v_client
+
+
+
+```
+Age and location
+
+Create graph for client clincian sub
+
+Need average satisfaction across client and clincian
+```{r}
+
+non_sub_and_sub_client_clinican_text = paste0("All comparisons statistically significant at the .05 alpha level")
+grob <- grobTree(textGrob(non_sub_and_sub_client_clinican_text, x=0.05,  y=0.90, hjust=0,
+                          gp=gpar(col="red", fontsize=13, fontface="italic")))
+
+
+
+title_non_sub_and_sub_client_clinican = paste0("Comparing % of clients and clinicians who agree or greater with \n televideo supporting communication, manage, and recovery to support \n for substance use")
+
+plot_non_sub_and_sub_client_clinican = ggplot(non_sub_and_sub_client_clinican, aes(x = reorder(response, -percent),y =percent, fill = response))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_non_sub_and_sub_client_clinican, y = "Percent", x = "Sample")+
+  scale_y_continuous(limits = c(0,1))+
+   geom_text(aes(label = percent), position=position_dodge(width=0.90), vjust=-0.25)+
+  theme(legend.position = "none")+
+  annotation_custom(grob)
+
+plot_non_sub_and_sub_client_clinican
+```
+Data cleaning for preferences
+```{r}
+##Client
+prefer_service_client_dat = na.omit(data.frame(televideo = tele_zoom_dat_complete$prefer_service___1, telephone = tele_zoom_dat_complete$prefer_service___2, in_person = tele_zoom_dat_complete$prefer_service___3))
+
+clincian_survey_dat = subset(tech_cri_dat_complete, job_title != 3)
+clincian_survey_dat = subset(clincian_survey_dat, service_provided___6 != 1)
+n_clinician_survey = dim(clincian_survey_dat)[1]
+
+
+prefer_service_client_dat = apply(prefer_service_client_dat, 2, sum)
+
+percent_prefer_service_client = round(prefer_service_client_dat / n_prefer_service_client,2)
+prefer_service_client_dat = data.frame(t(rbind(prefer_service_client_dat, percent_prefer_service_client)))
+var_names =  rownames(prefer_service_client_dat)
+prefer_service_client_dat = data.frame(var_names, prefer_service_client_dat)
+rownames(prefer_service_client_dat) = NULL
+prefer_service_client_dat
+colnames(prefer_service_client_dat) = c("response_options", "count", "percent")
+prefer_service_client_dat
+
+### Clincian
+prefer_service_clinician = tech_cri_dat_complete[,118:120]
+n_prefer_service_clinician = dim(prefer_service_clinician)[1]
+prefer_service_clinician = apply(prefer_service_clinician, 2, sum)
+prefer_service_clinician = data.frame(prefer_service_clinician)
+prefer_service_clinician$percent = prefer_service_clinician$prefer_service_clinician / n_clinician_survey
+
+response_options =  c("televideo", "telephone", "in_person")
+prefer_service_clinician = data.frame(response_options, prefer_service_clinician)
+rownames(prefer_service_clinician) = NULL
+colnames(prefer_service_clinician)[2] = "count"
+prefer_service_clinician$percent = round(prefer_service_clinician$percent,2)
+prefer_service_clinician
+
+prefer_service_clinician_client_dat= rbind(prefer_service_client_dat, prefer_service_clinician)
+prefer_service_clinician_client_dat$client_clinician = c("client", "client","client", "clinician", "clinician", "clinician")
+prefer_service_clinician_client_dat$response_options = recode(prefer_service_clinician_client_dat$response_options, "in_person" = "in person", "telephone" = "teleaudio / telephone")
+
+```
+Now conduct statistical tests
+```{r}
+
+### Televideo client versus televideo clinician
+p_tv_client_v_clinic = (prefer_service_clinician_client_dat$percent[1]*prefer_service_clinician_client_dat$count[1] + prefer_service_clinician_client_dat$percent[4]*prefer_service_clinician_client_dat$count[4])/(prefer_service_clinician_client_dat$count[1]+ prefer_service_clinician_client_dat$count[4])
+
+
+se_tv_client_v_clinic = sqrt(p_tv_client_v_clinic*(1-p_tv_client_v_clinic) * ( (1/prefer_service_clinician_client_dat$count[1]) +(1/prefer_service_clinician_client_dat$count[4])))
+
+z_tv_client_v_clinic = (prefer_service_clinician_client_dat$percent[1] - prefer_service_clinician_client_dat$percent[4])/se_tv_client_v_clinic
+z_tv_client_v_clinic
+p_tv_client_v_clinic = round(2*pnorm(-abs(z_tv_client_v_clinic)),4)
+p_tv_client_v_clinic
+
+### Teleaudio client versus clinician
+p_tele_a_client_v_clinic = (prefer_service_clinician_client_dat$percent[2]*prefer_service_clinician_client_dat$count[2] + prefer_service_clinician_client_dat$percent[5]*prefer_service_clinician_client_dat$count[5])/(prefer_service_clinician_client_dat$count[2]+ prefer_service_clinician_client_dat$count[5])
+
+
+se_tele_a_client_v_clinic = sqrt(p_tele_a_client_v_clinic*(1-p_tele_a_client_v_clinic) * ( (1/prefer_service_clinician_client_dat$count[2]) +(1/prefer_service_clinician_client_dat$count[5])))
+
+z_tele_a_client_v_clinic = (prefer_service_clinician_client_dat$percent[2] - prefer_service_clinician_client_dat$percent[5])/se_tele_a_client_v_clinic
+z_tele_a_client_v_clinic
+p_tele_a_client_v_clinic = round(2*pnorm(-abs(z_tele_a_client_v_clinic)),4)
+p_tele_a_client_v_clinic
+
+
+#Face to face client versus clinician
+p_ftf_client_v_clinic = (prefer_service_clinician_client_dat$percent[3]*prefer_service_clinician_client_dat$count[3] + prefer_service_clinician_client_dat$percent[6]*prefer_service_clinician_client_dat$count[6])/(prefer_service_clinician_client_dat$count[3]+ prefer_service_clinician_client_dat$count[6])
+
+
+se_ftf_client_v_clinic = sqrt(p_ftf_client_v_clinic*(1-p_ftf_client_v_clinic) * ( (1/prefer_service_clinician_client_dat$count[3]) +(1/prefer_service_clinician_client_dat$count[6])))
+
+z_ftf_client_v_clinic = (prefer_service_clinician_client_dat$percent[3] - prefer_service_clinician_client_dat$percent[6])/se_ftf_client_v_clinic
+z_ftf_client_v_clinic
+p_ftf_client_v_clinic = round(3*pnorm(-abs(z_ftf_client_v_clinic)),4)
+p_ftf_client_v_clinic
+
+```
+Now try graph with preferences
+
+** use the term teleaudio in staff survey and the term telephone.  teleaudio could include Zoom and Snap relative telephpne which does not
+```{r}
+pref_client_clinican_text = paste0("All differences between client and clinician are statistically significant \n at .05 alpha level")
+grob <- grobTree(textGrob(pref_client_clinican_text, x=0.05,  y=0.95, hjust=0,
+                          gp=gpar(col="red", fontsize=10, fontface="italic")))
+
+title_prefer_service_clinician_client = c("% of preferences of clients and clinicians future service delivery models")
+
+plot_prefer_service_clinician_client = ggplot(prefer_service_clinician_client_dat, aes(x = reorder(response_options, -percent),y =percent, fill = client_clinician))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=title_prefer_service_clinician_client, y = "Percent", x = "Response option")+
+  scale_y_continuous(limits = c(0,1))+
+  geom_text(aes(label = percent), position=position_dodge(width=0.9), vjust=-0.25)+
+  labs(fill = "Client or Clinician")+
+  annotation_custom(grob)
+
+plot_prefer_service_clinician_client
+```
+
+
+
