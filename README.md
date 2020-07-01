@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load in data
 ```{r echo=FALSE, warning=FALSE}
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction")
-tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-05-28_1508.csv", header = TRUE, na.strings = c(""))
+tech_cri_dat = read.csv("TelehealthSnapMDZoom_DATA_2020-07-01_0908.csv", header = TRUE, na.strings = c(""))
 tech_cri_dat = tech_cri_dat[-c(1:6),]
 
 tech_cri_dat_complete  = subset(tech_cri_dat, my_first_instrument_timestamp != "[not completed]")
@@ -33,6 +33,7 @@ library(ggrepel)
 library(webshot)
 library(prettyR)
 library(dplyr)
+library(prettyR)
 miss_var_summary(tech_cri_dat_complete)
 dim(tech_cri_dat_complete)
 dim(tech_cri_dat)
@@ -78,7 +79,7 @@ n_zoom+n_no_zoom == n_clinician_survey
 Tech survey responses
 ```{r}
 tech_team_responses_5_26_20 = subset(tech_cri_dat_complete, follow_up___1 == 1)
-dim(tech_team_reponses)
+
 
 write.csv(tech_team_responses_5_26_20, "tech_team_responses_5_26_20.csv", row.names = FALSE)
 ```
@@ -1023,18 +1024,7 @@ gtsave(table_barriers_snap_md, "table_barriers_snap_md.png")
 ```
 
 
-other_snap_barriers
-Other barriers not listed above
-Jess
-Correct Jess's codes
-Need to match what she did with the correct sample 
-```{r}
-setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks/satisfaction/clinician_qual")
-combine_correct_other_snap_barriers = read.csv("combine_correct_other_snap_barriers.csv", header = TRUE)
-combine_correct_other_snap_barriersdup =  duplicated(combine_correct_other_snap_barriers$other_snap_barriers)
-combine_correct_other_snap_barriers = subset(combine_correct_other_snap_barriers, dup == FALSE)
-write.csv(combine_correct_other_snap_barriers, "correct_snap_other_barriers.csv", row.names = FALSE)
-```
+
 
 Other barriers working from home
 ```{r}
@@ -1200,10 +1190,8 @@ n_comfort_televideo_dat = dim(comfort_televideo_dat)[1]
 
 library(descr)
 library(installr)
-uninstall.packages("questionr")
-uninstall.packages("frequency")
-uninstall.packages("prettyR")
-comfort_televideo_dat = data.frame(freq(comfort_televideo_dat$comfort_televideo))
+library(grid)
+comfort_televideo_dat = data.frame(descr::freq(comfort_televideo_dat$comfort_televideo))
 ## Get rid of total
 
 comfort_televideo_dat = comfort_televideo_dat[-8,]
@@ -1259,7 +1247,7 @@ Also include those who service_provided != 6
 interest_working_home_dat = na.omit(clincian_survey_dat$interest_working_home)
 interest_working_home_dat = data.frame(interest_working_home = interest_working_home_dat)
 n_interest_working_home_dat = dim(interest_working_home_dat)[1]
-interest_working_home_dat = data.frame(freq(interest_working_home_dat$interest_working_home))
+interest_working_home_dat = data.frame(descr::freq(interest_working_home_dat$interest_working_home))
 ## Get rid of total
 interest_working_home_dat = interest_working_home_dat[-8,]
 var_names =  rownames(interest_working_home_dat)
@@ -1651,7 +1639,7 @@ tech_cri_dat_complete
 state_dat = na.omit(tech_cri_dat_complete$state)
 state_dat = data.frame(state = state_dat)
 n_state_dat = dim(state_dat)[1]
-state_dat = data.frame(freq(state_dat$state))
+state_dat = data.frame(descr::freq(state_dat$state))
 ## Get rid of total change to 6 later
 state_dat = state_dat[-6,]
 state_dat$var_names = c("Tennessee", "Indiana", "Illinois", "Florida", "Another state")
@@ -1679,7 +1667,7 @@ What is your age?
 age_dat = na.omit(tech_cri_dat_complete$age)
 age_dat = data.frame(age = age_dat)
 n_age_dat = dim(age_dat)[1]
-age_dat = data.frame(freq(age_dat$age))
+age_dat = data.frame(descr::freq(age_dat$age))
 ## Get rid of total change to 8 later
 age_dat = age_dat[-8,]
 age_dat$var_names = c("18 to 25 \n years old", "26 to 34 \n years old", "35 to 44 \n years old", "45 to 54 \n years old", "55 to 64 \n years old", "65 to 74 \n years old", "75+")
@@ -1705,7 +1693,7 @@ What is your racial identity?
 race_dat = na.omit(tech_cri_dat_complete$race)
 race_dat = data.frame(race = race_dat)
 n_race_dat = dim(race_dat)[1]
-race_dat = data.frame(freq(race_dat$race))
+race_dat = data.frame(descr::freq(race_dat$race))
 ## Get rid of total change to 9 later
 race_dat = race_dat[-9,]
 race_dat$var_names = c("White", "Black or African American", "American Indian or \n Alaska Native", "Asian", "Native Hawaiian or \n Other Pacific Islander", "Multiracial", "Another racial identity", "Prefer not to respond")
@@ -1731,7 +1719,7 @@ What is your gender identity?
 gender_dat = na.omit(tech_cri_dat_complete$gender)
 gender_dat = data.frame(gender = gender_dat)
 n_gender_dat = dim(gender_dat)[1]
-gender_dat = data.frame(freq(gender_dat$gender))
+gender_dat = data.frame(descr::freq(gender_dat$gender))
 ## Get rid of total change to 5 later
 gender_dat = gender_dat[-5,]
 gender_dat$var_names = c("Male", "Female", "Another gender identity", "Prefer not to respond")
@@ -1755,7 +1743,7 @@ Which option best describes your job title?
 job_title_extend_dat = na.omit(tech_cri_dat_complete$job_title_extend)
 job_title_extend_dat = data.frame(job_title_extend = job_title_extend_dat)
 n_job_title_extend_dat = dim(job_title_extend_dat)[1]
-job_title_extend_dat = data.frame(freq(job_title_extend_dat$job_title_extend))
+job_title_extend_dat = data.frame(descr::freq(job_title_extend_dat$job_title_extend))
 ## Get rid of total change to 8 later
 job_title_extend_dat = job_title_extend_dat[-8,]
 job_title_extend_dat$var_names = c("Psychiatrists", "Nurse Practitioners", "Clinician - Masters, \n non-licensed", "Clinician - Masters, \n licensed", "Clinician - Bachelors", "Peer Support Specialist", "Another job title")
