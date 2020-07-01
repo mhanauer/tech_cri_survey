@@ -200,7 +200,7 @@ situation_overall_dat$percent = as.numeric(situation_overall_dat$n / n_situation
 
 situation_overall_dat$percent = round(situation_overall_dat$percent, 2)*100
 situation_overall_dat$percent = paste0(situation_overall_dat$percent, "%")
-title_situation_overall = paste0("What work group are you in?", " ", "n=", n_situation_overall)
+title_situation_overall = paste0("Where are you working from?", " ", "n=", n_situation_overall)
 write.csv(situation_overall_dat, "situation_overall_dat.csv", row.names = FALSE)
 
 plot_situation_overall = ggplot(situation_overall_dat, aes(x = situation,y =n, fill = situation))+
@@ -1543,7 +1543,7 @@ rownames(cor_zoom_no_use) = NULL
 cor_zoom_no_use
 
 
-title_cor_zoom_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to zoomMD for those not using Zoom", " ", "n=", n_cor_zoom_no_use_dat_complete)
+title_cor_zoom_no_use = paste0("Spearman correlation between supervisor support and total number of barriers to Zoom for those not using Zoom", " ", "n=", n_cor_zoom_no_use_dat_complete)
 table_cor_zoom_no_use = 
   gt(cor_zoom_no_use) %>%
   tab_header(title = title_cor_zoom_no_use)%>%
