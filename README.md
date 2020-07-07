@@ -101,7 +101,6 @@ job_title_dat = job_title_dat%>% group_by(state) %>% count(job_title)
 job_title_dat$percent = ifelse(job_title_dat$state == "Indiana", job_title_dat$n / n_state_job_title$Indiana, ifelse(job_title_dat$state == "Tennessee", job_title_dat$n / n_state_job_title$Tennessee, ifelse(job_title_dat$state == "Illinois", job_title_dat$n / n_state_job_title$Illinois, ifelse(job_title_dat$state == "Florida", job_title_dat$n / n_state_job_title$Florida, job_title_dat$n / n_state_job_title$Another.state))))
 
 job_title_dat$state = ifelse(job_title_dat$state == "Indiana", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Indiana) , ifelse(job_title_dat$state == "Tennessee", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Tennessee), ifelse(job_title_dat$state == "Illinois", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Illinois), ifelse(job_title_dat$state == "Florida", paste0(job_title_dat$state, " ", "n=", n_state_job_title$Florida), paste0(job_title_dat$state, " ", "n=", n_state_job_title$Another.state)))))
-
 job_title_dat$state = as.factor(job_title_dat$state)
 
 job_title_dat$state = factor(job_title_dat$state, levels = levels(job_title_dat$state)[5:1])
